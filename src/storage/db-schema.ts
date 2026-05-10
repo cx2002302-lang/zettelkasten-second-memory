@@ -142,6 +142,9 @@ export function ensureZettelkastenSchema(
   // Phase 3: Wave 1 - 知识发光度与归档支持
   ensurePhase3Wave1Schema(db);
   
+  // Wave 2: 归档历史记录
+  ensureArchiveLogTable(db);
+  
   // Phase 5: 人机共生与反馈 - 创建审核和反馈相关表
   ensurePhase5Schema(db);
   
@@ -456,4 +459,24 @@ export function getDatabaseStats(db: DatabaseSync): {
     tags: tags.count,
     noteTags: noteTags.count,
   };
+}
+
+/**
+ * Wave 2: 归档历史记录表
+ * 记录所有归档/恢复操作，支持审计和撤销
+ */
+export function ensureArchiveLogTable(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS zettel_archive_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      note_id TEXT NOT NULL REFERENCES zettel_notes(id) ON DELETE CASCADE,
+      note_title TEXT NOT NULL,
+      action TEXT NOT NULL CHECK (action IN ('archive', 'unarchive', 'auto_archive')),
+      reason TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_archive_log_note_id ON zettel_archive_log(note_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_archive_log_created_at ON zettel_archive_log(created_at);`);
 }

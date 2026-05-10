@@ -24,6 +24,7 @@ import { CEQRCEngine } from "../service/ceqrc-engine.js";
 import { DistillerService } from "../service/distiller-service.js";
 import { GlowCalculator } from "../engine/glow-calculator.js";
 import { PathFinder } from "../engine/path-finder.js";
+import { ArchiveService } from "../service/archive-service.js";
 import type {
   ZettelNote,
   CreateNoteParams,
@@ -55,6 +56,7 @@ export class ZettelkastenMCPServer {
   private distillerService?: DistillerService;
   private glowCalculator: GlowCalculator;
   private pathFinder: PathFinder;
+  private archiveService: ArchiveService;
 
   constructor(
     private db: DatabaseSync,
@@ -65,6 +67,7 @@ export class ZettelkastenMCPServer {
     this.linkService = new LinkService(db);
     this.glowCalculator = new GlowCalculator(db);
     this.pathFinder = new PathFinder(db);
+    this.archiveService = new ArchiveService(db);
     
     // 如果提供了 LLM Provider，初始化 CEQRC 引擎和蒸馏服务
     if (config.llmProvider) {
@@ -165,7 +168,11 @@ export class ZettelkastenMCPServer {
       throw new Error("Read-write tools are disabled");
     }
     
-    return await this.noteService.updateNote(noteId, { folder: "archive" as NoteFolder });
+    const note = await this.noteService.archiveNote(noteId);
+    if (note) {
+      this.archiveService.logAction(noteId, note.title, "archive", "手动归档");
+    }
+    return note;
   }
 
   /**
@@ -176,8 +183,22 @@ export class ZettelkastenMCPServer {
       throw new Error("Read-write tools are disabled");
     }
     
-    // 恢复到 references（默认恢复位置）
-    return await this.noteService.updateNote(noteId, { folder: "references" as NoteFolder });
+    const note = await this.noteService.unarchiveNote(noteId);
+    if (note) {
+      this.archiveService.logAction(noteId, note.title, "unarchive", "手动恢复");
+    }
+    return note;
+  }
+
+  /**
+   * 获取归档历史
+   */
+  async getArchiveLog(options?: { noteId?: string; limit?: number; action?: string }) {
+    if (!this.config.enableReadOnlyTools) {
+      throw new Error("Read-only tools are disabled");
+    }
+    
+    return this.archiveService.getArchiveLog(options);
   }
 
   // ========== 工具方法（后台读写） ==========
@@ -406,6 +427,23 @@ export class ZettelkastenMCPServer {
             required: ["query"],
           },
           handler: async (args: any) => await this.searchArchived(args.query, args.limit),
+        },
+        {
+          name: "zk_get_archive_log",
+          description: "获取归档/恢复操作历史记录",
+          inputSchema: {
+            type: "object",
+            properties: {
+              noteId: { type: "string", description: "指定笔记 ID 筛选" },
+              action: { type: "string", enum: ["archive", "unarchive", "auto_archive"], description: "操作类型筛选" },
+              limit: { type: "number", description: "返回数量", default: 50 },
+            },
+          },
+          handler: async (args: any) => await this.getArchiveLog({
+            noteId: args.noteId,
+            action: args.action,
+            limit: args.limit,
+          }),
         }
       );
     }

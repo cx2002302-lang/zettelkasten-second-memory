@@ -114,6 +114,8 @@ export interface UpdateNoteParams {
   source?: SourceType;
   /** 是否已审核 */
   reviewed?: boolean;
+  /** 保留原 updated_at（用于归档/恢复等元数据操作） */
+  preserveUpdatedAt?: boolean;
   /** 标签数组 */
   tags?: string[];
   /** 链接数组 */

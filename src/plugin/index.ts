@@ -12,6 +12,9 @@ import { NoteService } from "../service/note-service.js";
 import { LinkService } from "../service/link-service.js";
 import { CEQRCEngine } from "../service/ceqrc-engine.js";
 import { DistillerService } from "../service/distiller-service.js";
+import { GlowCalculator } from "../engine/glow-calculator.js";
+import { PathFinder } from "../engine/path-finder.js";
+import { ArchiveService } from "../service/archive-service.js";
 import { ensureZettelkastenSchema, getDatabaseStats } from "../storage/db-schema.js";
 
 export const zettelkastenConfigSchema = z.object({
@@ -72,6 +75,9 @@ export function resolveZettelkastenConfig(
           "zk_get_note",
           "zk_get_backlinks",
           "zk_find_path",
+          "zk_glow_ranking",
+          "zk_find_zombies",
+          "zk_search_archived",
         ],
       },
       knowledge: {
@@ -85,6 +91,8 @@ export function resolveZettelkastenConfig(
           "zk_run_ceqrc",
           "zk_distill_memory",
           "zk_review_note",
+          "zk_archive_note",
+          "zk_unarchive_note",
         ],
       },
     },
@@ -241,6 +249,63 @@ const ZkReviewNoteSchema = Type.Object(
   { additionalProperties: false },
 );
 
+const ZkGlowRankingSchema = Type.Object(
+  {
+    limit: Type.Optional(Type.Number({
+      description: "Maximum number of results (default 20)",
+      minimum: 1,
+      maximum: 100,
+    })),
+    statusFilter: Type.Optional(Type.Array(
+      Type.String({ enum: ["evergreen", "active", "stable", "zombie"] }),
+      { description: "Filter by glow status categories" },
+    )),
+    minGlow: Type.Optional(Type.Number({
+      description: "Minimum glow score (0-1)",
+      minimum: 0,
+      maximum: 1,
+    })),
+  },
+  { additionalProperties: false },
+);
+
+const ZkFindZombiesSchema = Type.Object(
+  {
+    limit: Type.Optional(Type.Number({
+      description: "Maximum number of zombie notes to return (default 20)",
+      minimum: 1,
+      maximum: 100,
+    })),
+  },
+  { additionalProperties: false },
+);
+
+const ZkSearchArchivedSchema = Type.Object(
+  {
+    query: Type.String({ description: "Search query string" }),
+    limit: Type.Optional(Type.Number({
+      description: "Maximum number of results (default 20)",
+      minimum: 1,
+      maximum: 100,
+    })),
+  },
+  { additionalProperties: false },
+);
+
+const ZkArchiveNoteSchema = Type.Object(
+  {
+    note_id: Type.String({ description: "Note ID to archive" }),
+  },
+  { additionalProperties: false },
+);
+
+const ZkUnarchiveNoteSchema = Type.Object(
+  {
+    note_id: Type.String({ description: "Note ID to unarchive" }),
+  },
+  { additionalProperties: false },
+);
+
 // ========== Tool Builders ==========
 
 function createZkCreateNoteTool(noteService: NoteService, notesDir: string) {
@@ -327,23 +392,29 @@ function createZkGetBacklinksTool(linkService: LinkService) {
   };
 }
 
-function createZkFindPathTool(linkService: LinkService) {
+function createZkFindPathTool(pathFinder: PathFinder) {
   return {
     name: "zk_find_path",
     label: "ZK Find Path",
     description:
-      "Find the shortest path through the link graph between two notes. Returns the sequence of note IDs forming the path.",
+      "Find the shortest weighted path through the link graph between two notes. Returns the sequence of note IDs with path explanation.",
     parameters: ZkFindPathSchema,
     execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
       const fromId = readStringParam(rawParams, "from_note_id", { required: true });
       const toId = readStringParam(rawParams, "to_note_id", { required: true });
 
       try {
-        const path = linkService.findPath(fromId, toId);
-        if (!path) {
+        const result = pathFinder.findPath(fromId, toId);
+        if (!result) {
           return jsonResult({ path: null, message: `No path found between "${fromId}" and "${toId}"` });
         }
-        return jsonResult({ path, length: path.length });
+        return jsonResult({
+          path: result.path.map((n) => n.noteId),
+          length: result.path.length,
+          stepCount: result.stepCount,
+          totalWeight: result.totalWeight,
+          explanation: result.explanation,
+        });
       } catch (err) {
         return jsonResult({ error: err instanceof Error ? err.message : String(err) });
       }
@@ -487,6 +558,128 @@ function createZkReviewNoteTool(
   };
 }
 
+function createZkGlowRankingTool(glowCalculator: GlowCalculator) {
+  return {
+    name: "zk_glow_ranking",
+    label: "ZK Glow Ranking",
+    description:
+      "Get notes ranked by glow score (knowledge vitality). Supports filtering by status (evergreen, active, stable, zombie) and minimum glow threshold.",
+    parameters: ZkGlowRankingSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const limit = readNumberParam(rawParams, "limit", { integer: true }) ?? 20;
+      const statusFilter = Array.isArray(rawParams.statusFilter)
+        ? (rawParams.statusFilter as string[]).filter((s) => typeof s === "string")
+        : undefined;
+      const minGlow = readNumberParam(rawParams, "minGlow");
+
+      const results = glowCalculator.getRanking({
+        limit,
+        statusFilter: statusFilter as Array<"evergreen" | "active" | "stable" | "zombie">,
+        minGlow: minGlow ?? undefined,
+      });
+      return jsonResult(results);
+    },
+  };
+}
+
+function createZkFindZombiesTool(glowCalculator: GlowCalculator) {
+  return {
+    name: "zk_find_zombies",
+    label: "ZK Find Zombies",
+    description:
+      "Find zombie notes — notes that haven't been updated for a long time and have no backlinks. Good candidates for archival.",
+    parameters: ZkFindZombiesSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const limit = readNumberParam(rawParams, "limit", { integer: true }) ?? 20;
+
+      const results = glowCalculator.findZombies(limit);
+      return jsonResult(results);
+    },
+  };
+}
+
+function createZkSearchArchivedTool(noteService: NoteService) {
+  return {
+    name: "zk_search_archived",
+    label: "ZK Search Archived",
+    description:
+      "Search across archived notes. By default, regular search excludes archived notes; use this tool to include them.",
+    parameters: ZkSearchArchivedSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const query = readStringParam(rawParams, "query", { required: true });
+      const limit = readNumberParam(rawParams, "limit", { integer: true }) ?? 20;
+
+      const results = await noteService.searchNotes(query, limit, { includeArchived: true });
+      return jsonResult(results);
+    },
+  };
+}
+
+function createZkArchiveNoteTool(noteService: NoteService) {
+  return {
+    name: "zk_archive_note",
+    label: "ZK Archive Note",
+    description:
+      "Archive a note by moving it to the archive folder.",
+    parameters: ZkArchiveNoteSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const noteId = readStringParam(rawParams, "note_id", { required: true });
+
+      const updated = await noteService.archiveNote(noteId);
+      if (!updated) {
+        return jsonResult({ error: `Note "${noteId}" not found` });
+      }
+      return jsonResult(updated);
+    },
+  };
+}
+
+function createZkUnarchiveNoteTool(noteService: NoteService) {
+  return {
+    name: "zk_unarchive_note",
+    label: "ZK Unarchive Note",
+    description:
+      "Unarchive a note by moving it back to the references folder.",
+    parameters: ZkUnarchiveNoteSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const noteId = readStringParam(rawParams, "note_id", { required: true });
+
+      const updated = await noteService.unarchiveNote(noteId);
+      if (!updated) {
+        return jsonResult({ error: `Note "${noteId}" not found` });
+      }
+      return jsonResult(updated);
+    },
+  };
+}
+
+const ZkGetArchiveLogSchema = Type.Object(
+  {
+    note_id: Type.Optional(Type.String({ description: "Filter by note ID" })),
+    action: Type.Optional(Type.String({ description: "Filter by action type", enum: ["archive", "unarchive", "auto_archive"] })),
+    limit: Type.Optional(Type.Number({ description: "Max results (default 50)", minimum: 1, maximum: 200 })),
+  },
+  { additionalProperties: false },
+);
+
+function createZkGetArchiveLogTool(archiveService: ArchiveService) {
+  return {
+    name: "zk_get_archive_log",
+    label: "ZK Get Archive Log",
+    description:
+      "Retrieve the archive/unarchive operation history. Shows when notes were archived, restored, or auto-archived.",
+    parameters: ZkGetArchiveLogSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const noteId = readStringParam(rawParams, "note_id");
+      const action = readStringParam(rawParams, "action");
+      const limit = readNumberParam(rawParams, "limit", { integer: true }) ?? 50;
+
+      const log = archiveService.getArchiveLog({ noteId, action, limit });
+      return jsonResult(log);
+    },
+  };
+}
+
 // ========== Plugin Entry ==========
 
 export default definePluginEntry({
@@ -513,6 +706,9 @@ export default definePluginEntry({
     };
     const noteService = new NoteService(db, config.notesDir, confidenceConfig);
     const linkService = new LinkService(db);
+    const glowCalculator = new GlowCalculator(db);
+    const pathFinder = new PathFinder(db);
+    const archiveService = new ArchiveService(db);
 
     const nullLLM = nullLLMProvider();
     const ceqrcEngine = new CEQRCEngine(nullLLM);
@@ -522,11 +718,17 @@ export default definePluginEntry({
     api.registerTool(createZkSearchNotesTool(noteService), { name: "zk_search_notes" });
     api.registerTool(createZkGetNoteTool(noteService), { name: "zk_get_note" });
     api.registerTool(createZkGetBacklinksTool(linkService), { name: "zk_get_backlinks" });
-    api.registerTool(createZkFindPathTool(linkService), { name: "zk_find_path" });
+    api.registerTool(createZkFindPathTool(pathFinder), { name: "zk_find_path" });
     api.registerTool(createZkUpdateNoteTool(noteService), { name: "zk_update_note" });
     api.registerTool(createZkRunCeqrcTool(ceqrcEngine, noteService), { name: "zk_run_ceqrc" });
     api.registerTool(createZkDistillMemoryTool(distillerService), { name: "zk_distill_memory" });
     api.registerTool(createZkReviewNoteTool(noteService, config), { name: "zk_review_note" });
+    api.registerTool(createZkGlowRankingTool(glowCalculator), { name: "zk_glow_ranking" });
+    api.registerTool(createZkFindZombiesTool(glowCalculator), { name: "zk_find_zombies" });
+    api.registerTool(createZkSearchArchivedTool(noteService), { name: "zk_search_archived" });
+    api.registerTool(createZkArchiveNoteTool(noteService), { name: "zk_archive_note" });
+    api.registerTool(createZkUnarchiveNoteTool(noteService), { name: "zk_unarchive_note" });
+    api.registerTool(createZkGetArchiveLogTool(archiveService), { name: "zk_get_archive_log" });
 
     api.registerCli(
       ({ program }) => {
@@ -875,6 +1077,54 @@ export default definePluginEntry({
             api.logger.info(`[zettelkasten] Time:      ${now.toISOString()}`);
             api.logger.info("[zettelkasten] ════════════════════════════════════════");
           });
+
+        zk
+          .command("archive-log")
+          .description("Show archive/unarchive operation history")
+          .option("--note-id <id>", "Filter by note ID")
+          .option("--action <action>", "Filter by action (archive/unarchive/auto_archive)")
+          .option("--limit <n>", "Max results", parseInt, 20)
+          .action(async (opts) => {
+            const log = archiveService.getArchiveLog({
+              noteId: opts.noteId,
+              action: opts.action,
+              limit: opts.limit,
+            });
+            if (log.length === 0) {
+              api.logger.info("[zettelkasten] No archive log entries found");
+            } else {
+              api.logger.info(`[zettelkasten] Archive log (${log.length} entries):`);
+              for (const entry of log) {
+                api.logger.info(
+                  `  [${entry.createdAt}] ${entry.action} | ${entry.noteTitle} (ID: ${entry.noteId})${entry.reason ? " | " + entry.reason : ""}`,
+                );
+              }
+            }
+            const stats = archiveService.getArchiveStats();
+            api.logger.info(`[zettelkasten] Stats: archived=${stats.totalArchived} restored=${stats.totalRestored} auto=${stats.totalAutoArchived} recent7d=${stats.recent7Days}`);
+          });
+
+        zk
+          .command("auto-archive")
+          .description("Run auto-archive scan for zombie notes (dry-run by default)")
+          .option("--execute", "Actually perform archiving (default is dry-run)")
+          .option("--limit <n>", "Max zombies to archive", parseInt, 50)
+          .action(async (opts) => {
+            const dryRun = !opts.execute;
+            api.logger.info(`[zettelkasten] Auto-archive scan (${dryRun ? "dry-run" : "LIVE"})...`);
+            const result = archiveService.autoArchiveZombies({ dryRun, limit: opts.limit });
+            if (result.archived === 0) {
+              api.logger.info("[zettelkasten] No zombie notes found");
+            } else {
+              api.logger.info(`[zettelkasten] Found ${result.archived} zombie note(s):`);
+              for (const n of result.notes) {
+                api.logger.info(`  - ${n.title}: ${n.reason}`);
+              }
+              if (dryRun) {
+                api.logger.info("[zettelkasten] (dry-run: no changes made, use --execute to archive)");
+              }
+            }
+          });
       },
       {
         commands: ["zk"],
@@ -897,11 +1147,12 @@ export default definePluginEntry({
       api.registerService({
         id: "zettelkasten-nightly-distill",
         start(_ctx) {
-          api.logger.info("[zettelkasten] Nightly distill service started");
+          api.logger.info("[zettelkasten] Nightly service started (distill + auto-archive)");
           const intervalMs = 60 * 60 * 1000;
           timer = setInterval(async () => {
             const now = new Date();
             if (now.getHours() === 2 && now.getMinutes() === 0) {
+              // 1. Nightly distillation
               api.logger.info("[zettelkasten] Running nightly distillation...");
               try {
                 const existingNotes: ZettelNote[] = [];
@@ -912,6 +1163,24 @@ export default definePluginEntry({
               } catch (err) {
                 api.logger.error(`[zettelkasten] Nightly distill failed: ${err instanceof Error ? err.message : String(err)}`);
               }
+
+              // 2. Auto-archive zombies
+              api.logger.info("[zettelkasten] Running nightly auto-archive...");
+              try {
+                const result = archiveService.autoArchiveZombies();
+                if (result.archived > 0) {
+                  api.logger.info(
+                    `[zettelkasten] Auto-archive complete: ${result.archived} zombie(s) archived`,
+                  );
+                  for (const n of result.notes) {
+                    api.logger.info(`  - ${n.title}: ${n.reason}`);
+                  }
+                } else {
+                  api.logger.info("[zettelkasten] Auto-archive: no zombies found");
+                }
+              } catch (err) {
+                api.logger.error(`[zettelkasten] Auto-archive failed: ${err instanceof Error ? err.message : String(err)}`);
+              }
             }
           }, intervalMs);
         },
@@ -920,7 +1189,7 @@ export default definePluginEntry({
             clearInterval(timer);
             timer = undefined;
           }
-          api.logger.info("[zettelkasten] Nightly distill service stopped");
+          api.logger.info("[zettelkasten] Nightly service stopped");
         },
       });
     }

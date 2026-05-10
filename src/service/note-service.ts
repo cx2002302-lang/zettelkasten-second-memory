@@ -163,6 +163,14 @@ export class NoteService {
   /**
    * 搜索笔记（全文搜索）
    */
+  async archiveNote(id: string): Promise<ZettelNote | null> {
+    return await this.updateNote(id, { folder: "archive", preserveUpdatedAt: true });
+  }
+
+  async unarchiveNote(id: string): Promise<ZettelNote | null> {
+    return await this.updateNote(id, { folder: "zettels", preserveUpdatedAt: true });
+  }
+
   async searchNotes(query: string, limit: number = 20, options?: { includeArchived?: boolean }) {
     const results = await this.noteRepo.search(query, limit);
     if (!options?.includeArchived) {

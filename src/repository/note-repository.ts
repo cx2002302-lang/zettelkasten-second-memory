@@ -152,9 +152,11 @@ export class NoteRepository {
     }
     
     const now = toISOString();
-    const updates: Record<string, any> = {
-      updated_at: now,
-    };
+    const updates: Record<string, any> = {};
+    
+    if (!params.preserveUpdatedAt) {
+      updates.updated_at = now;
+    }
     
     if (params.title !== undefined) updates.title = params.title;
     if (params.content !== undefined) {

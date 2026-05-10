@@ -1,0 +1,144 @@
+{
+  "id": "zettelkasten",
+  "name": "Zettelkasten Second Memory System",
+  "description": "Atomic note-taking, bi‑directional linking, and knowledge‑graph distillation for OpenClaw. Provides a structured second‑memory system with confidence‑routed inbox processing and nightly distillation.",
+  "uiHints": {
+    "notesDir": {
+      "label": "Notes Directory",
+      "help": "Filesystem path where Zettelkasten Markdown notes will be stored."
+    },
+    "databasePath": {
+      "label": "Database Path",
+      "help": "SQLite database file path for storing links, tags, and metadata."
+    },
+    "agentConfigs.chat.tools": {
+      "label": "Chat Agent Tools",
+      "help": "MCP tools accessible to the front‑brain (chat agent) – read‑only subset."
+    },
+    "agentConfigs.knowledge.tools": {
+      "label": "Knowledge Agent Tools",
+      "help": "MCP tools accessible to the back‑brain (knowledge agent) – full read‑write access."
+    },
+    "nightlyDistill.enabled": {
+      "label": "Enable Nightly Distillation",
+      "help": "Run CEQRC distillation pipeline every night at 2:00 AM."
+    },
+    "nightlyDistill.cronExpression": {
+      "label": "Nightly Distillation Schedule",
+      "help": "Cron expression for automatic distillation (default: 0 2 * * * – 2 AM daily)."
+    },
+    "sessionHook.enabled": {
+      "label": "Enable Session Hook",
+      "help": "Automatically distill session memories when a session ends."
+    },
+    "confidenceThreshold.zettels": {
+      "label": "Zettels Confidence Threshold",
+      "help": "Minimum confidence score (0.0‑1.0) for a note to be routed to the permanent zettels folder."
+    },
+    "confidenceThreshold.references": {
+      "label": "References Confidence Threshold",
+      "help": "Minimum confidence score for a note to be moved from inbox to references."
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "notesDir": {
+        "type": "string",
+        "default": "~/.openclaw/zettelkasten/notes"
+      },
+      "databasePath": {
+        "type": "string",
+        "default": "~/.openclaw/zettelkasten/zettelkasten.db"
+      },
+      "agentConfigs": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "chat": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tools": {
+                "type": "array",
+                "items": { "type": "string" },
+                "default": ["zk_search_notes", "zk_get_note", "zk_get_backlinks", "zk_find_path"]
+              }
+            }
+          },
+          "knowledge": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tools": {
+                "type": "array",
+                "items": { "type": "string" },
+                "default": [
+                  "zk_search_notes",
+                  "zk_get_note",
+                  "zk_get_backlinks",
+                  "zk_find_path",
+                  "zk_create_note",
+                  "zk_update_note",
+                  "zk_run_ceqrc",
+                  "zk_distill_memory",
+                  "zk_review_note"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "nightlyDistill": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "cronExpression": {
+            "type": "string",
+            "default": "0 2 * * *"
+          }
+        }
+      },
+      "sessionHook": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "confidenceThreshold": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "zettels": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.7
+          },
+          "references": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.4
+          }
+        }
+      }
+    }
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "configContracts": {
+    "compatibilityMigrationPaths": []
+  },
+  "commandAliases": [{ "name": "zk" }]
+}

@@ -1,27 +1,33 @@
 # 🧠 Zettelkasten Second Memory
 
-> 为 AI 时代设计的卢曼卡片盒笔记系统 —— 原子化记录、双向链接、知识蒸馏、智能检索。
+> A Zettelkasten note-taking system designed for the AI era — atomic notes, bi-directional linking, knowledge distillation, and intelligent retrieval.
+
+[English](README.md) · [简体中文](README.zh.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.14.0-blue.svg)](package.json)
 
 ---
 
-## ✨ 核心特性
+## ✨ Core Features
 
-| 特性 | 说明 |
-|------|------|
-| 📝 **原子卡片** | 每条笔记都是独立、原子的知识单元，支持 `atomic` / `structure` / `source` 三种类型 |
-| 🔗 **双向链接** | 11 种语义化链接类型（支持、细化、扩展、反驳、示例…），构建真正的知识图谱 |
-| 🔍 **全文搜索** | SQLite FTS5 + LIKE 双引擎，支持中文分词与模糊匹配 |
-| 🤖 **AI 集成** | 通过 MCP 协议与 OpenClaw 深度集成，AI 自动记录对话知识 |
-| 🔄 **知识蒸馏** | CEQRC 流水线自动将碎片笔记提炼为永久知识 |
-| 🏷️ **标签系统** | 灵活的标签分类与统计，支持标签云分析 |
-| 📦 **Markdown 原生** | 所有笔记以 Markdown 存储，数据完全属于你 |
+| Feature | Description |
+|---------|-------------|
+| 📝 **Atomic Notes** | Each note is an independent knowledge unit, supporting `atomic` / `structure` / `source` types |
+| 🔗 **Bi-directional Links** | 11 semantic link types (supports, refines, extends, contradicts, example-of...) to build a true knowledge graph |
+| 🔍 **Full-text Search** | SQLite FTS5 + LIKE dual engine, supporting Chinese tokenization and fuzzy matching |
+| 🤖 **AI Integration** | Deep MCP integration with OpenClaw, enabling AI agents to automatically capture conversation knowledge |
+| 🔄 **Knowledge Distillation** | CEQRC pipeline automatically refines fragmented notes into permanent knowledge |
+| 🏷️ **Tag System** | Flexible tag classification and statistics, supporting tag-cloud analysis |
+| 📦 **Markdown Native** | All notes stored as Markdown, your data belongs entirely to you |
 
 ---
 
-## 📐 系统架构
+> 🇨🇳 **Looking for Chinese documentation?** [点击这里查看简体中文介绍](README.zh.md)
+
+---
+
+## 📐 System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -53,119 +59,123 @@
 
 ---
 
-## 🚀 快速开始
+> 🇨🇳 **Chinese users**: [点击这里查看中文介绍](README.zh.md)
 
-### 环境要求
+---
 
-- **Node.js** >= 22.14.0（需要内置 `node:sqlite`）
-- **OpenClaw** >= 2026.4.23（如需 AI 集成）
+## 🚀 Quick Start
 
-### 安装
+### Requirements
+
+- **Node.js** >= 22.14.0 (requires built-in `node:sqlite`)
+- **OpenClaw** >= 2026.4.23 (for AI integration)
+
+### Installation
 
 ```bash
-# 克隆仓库
+# Clone the repository
 git clone https://github.com/YOUR_USERNAME/zettelkasten-second-memory.git
 cd zettelkasten-second-memory
 
-# 安装依赖
+# Install dependencies
 npm install
 
-# 运行测试
+# Run tests
 npm test
 ```
 
-### 作为 OpenClaw 插件使用
+### Use as an OpenClaw Plugin
 
 ```bash
-# 1. 部署插件
+# 1. Deploy the plugin
 bash scripts/deploy.sh
 
-# 2. 配置 OpenClaw（编辑 ~/.openclaw/openclaw.json）
-# 确保 plugins.load.paths 包含插件路径
+# 2. Configure OpenClaw (edit ~/.openclaw/openclaw.json)
+# Ensure plugins.load.paths includes the plugin path
 
-# 3. 重启 Gateway
+# 3. Restart the Gateway
 openclaw gateway restart
 
-# 4. 初始化数据库
+# 4. Initialize the database
 openclaw zk init
 
-# 5. 健康检查
+# 5. Health check
 openclaw zk doctor
 ```
 
-### 作为独立库使用
+### Use as a Standalone Library
 
 ```typescript
 import { createZettelkasten } from "zettelkasten-second-memory";
 
-// 创建客户端
+// Create a client
 const zk = await createZettelkasten("./data/zettelkasten.db", "./data");
 
-// 创建笔记
+// Create a note
 const note = await zk.createNote({
   title: "Hello Zettelkasten",
-  content: "这是我的第一条原子笔记。",
+  content: "This is my first atomic note.",
   tags: ["intro", "demo"],
   type: "atomic",
 });
 
-// 搜索
-const results = zk.searchNotes("原子笔记", 10);
+// Search
+const results = zk.searchNotes("atomic note", 10);
 console.log(results);
 ```
 
 ---
 
-## 🛠️ CLI 命令
+## 🛠️ CLI Commands
 
-| 命令 | 说明 |
-|------|------|
-| `openclaw zk init` | 初始化数据库和目录结构 |
-| `openclaw zk doctor` | 运行健康检查 |
-| `openclaw zk status` | 查看系统状态 |
-| `openclaw zk new` | 创建新笔记 |
-| `openclaw zk list` | 列出笔记 |
-| `openclaw zk search <query>` | 搜索笔记 |
-| `openclaw zk show <id>` | 查看笔记详情 |
-| `openclaw zk link <from> <to>` | 创建笔记链接 |
-
----
-
-## 🧩 MCP 工具（供 AI 调用）
-
-| 工具 | 权限 | 说明 |
-|------|------|------|
-| `zk_search_notes` | 读 | 全文搜索笔记 |
-| `zk_get_note` | 读 | 获取单条笔记 |
-| `zk_get_backlinks` | 读 | 获取反向链接 |
-| `zk_find_path` | 读 | 查找笔记间的路径 |
-| `zk_create_note` | 写 | 创建新笔记 |
-| `zk_update_note` | 写 | 更新笔记 |
-| `zk_create_link` | 写 | 创建笔记链接 |
-| `zk_run_ceqrc` | 写 | 运行认知流水线 |
-| `zk_distill_memory` | 写 | 蒸馏会话记忆 |
-| `zk_review_note` | 写 | 审核笔记 |
+| Command | Description |
+|---------|-------------|
+| `openclaw zk init` | Initialize database and directory structure |
+| `openclaw zk doctor` | Run health checks |
+| `openclaw zk status` | Show system status |
+| `openclaw zk new` | Create a new note |
+| `openclaw zk list` | List notes |
+| `openclaw zk search <query>` | Search notes |
+| `openclaw zk show <id>` | View note details |
+| `openclaw zk link <from> <to>` | Create a note link |
 
 ---
 
-## 📁 项目结构
+## 🧩 MCP Tools (for AI Agents)
+
+| Tool | Permission | Description |
+|------|------------|-------------|
+| `zk_search_notes` | Read | Full-text search for notes |
+| `zk_get_note` | Read | Get a single note |
+| `zk_get_backlinks` | Read | Get reverse links |
+| `zk_find_path` | Read | Find paths between notes |
+| `zk_create_note` | Write | Create a new note |
+| `zk_update_note` | Write | Update a note |
+| `zk_create_link` | Write | Create a note link |
+| `zk_run_ceqrc` | Write | Run the cognitive pipeline |
+| `zk_distill_memory` | Write | Distill session memories |
+| `zk_review_note` | Write | Review a note |
+
+---
+
+## 📁 Project Structure
 
 ```
 zettelkasten-second-memory/
 ├── src/
-│   ├── core/               # 类型定义、常量、工具函数
-│   ├── storage/            # 数据库 Schema、FTS5、模板管理
-│   ├── repository/         # 数据访问层（笔记、链接、标签、审核…）
-│   ├── service/            # 业务逻辑（CEQRC、蒸馏、去重…）
-│   ├── integration/        # OpenClaw 集成（Agent 配置、定时任务、会话钩子）
-│   ├── mcp/                # MCP 工具定义与服务器
-│   ├── plugin/             # OpenClaw 插件入口与清单
-│   ├── skills/brain/       # AI Skill（提示词、规则、进化脚本）
-│   ├── examples/           # 使用示例
-│   └── index.ts            # 库入口
-├── scripts/                # 部署脚本
-├── plans/                  # 设计文档与架构图
-├── docs/                   # 使用文档
+│   ├── core/               # Type definitions, constants, utilities
+│   ├── storage/            # Database schema, FTS5, template manager
+│   ├── repository/         # Data access layer (notes, links, tags, reviews...)
+│   ├── service/            # Business logic (CEQRC, distillation, deduplication...)
+│   ├── integration/        # OpenClaw integration (agent config, scheduler, hooks)
+│   ├── mcp/                # MCP tool definitions and server
+│   ├── plugin/             # OpenClaw plugin entry and manifest
+│   ├── skills/brain/       # AI Skill (prompts, rules, evolution scripts)
+│   ├── examples/           # Usage examples
+│   └── index.ts            # Library entry point
+├── scripts/                # Deployment scripts
+├── plans/                  # Design documents and architecture diagrams
+├── docs/                   # Documentation
 ├── package.json
 ├── LICENSE
 └── README.md
@@ -173,74 +183,74 @@ zettelkasten-second-memory/
 
 ---
 
-## 🧠 第二记忆 Skill（AI 集成）
+## 🧠 Second Memory Skill (AI Integration)
 
-本项目包含一个 **Brain Skill**，让 AI 代理自动将对话中的知识保存到 Zettelkasten：
+This project includes a **Brain Skill** that enables AI agents to automatically save conversation knowledge into Zettelkasten:
 
 ```bash
-# 安装 Skill
+# Install the Skill
 cp -r src/skills/brain ~/.openclaw/skills/zettelkasten-brain
 
-# 激活 Skill
+# Activate the Skill
 openclaw config set agents.defaults.skills '["zettelkasten-brain"]'
 
-# 重启 Gateway
+# Restart the Gateway
 openclaw gateway restart
 ```
 
-激活后，AI 会在对话中自动：
-- 🔍 回答前先搜索知识库
-- 📝 识别并保存重要信息
-- 🔗 智能建立笔记关联
-- 📦 会话结束时归档讨论
+Once activated, the AI will automatically:
+- 🔍 Search the knowledge base before answering
+- 📝 Recognize and save important information
+- 🔗 Intelligently establish note associations
+- 📦 Archive discussions when sessions end
 
 ---
 
-## 📊 数据库 Schema
+## 📊 Database Schema
 
-系统使用 SQLite，核心表包括：
+The system uses SQLite. Core tables include:
 
-| 表名 | 说明 |
-|------|------|
-| `zettel_notes` | 笔记主表（标题、内容、状态、置信度…） |
-| `zettel_links` | 双向链接表（11 种语义链接类型） |
-| `zettel_tags` | 标签表 |
-| `zettel_note_tags` | 笔记-标签关联表 |
-| `zettel_reviews` | 审核记录表 |
-| `zettel_feedback` | 反馈数据表 |
-| `zettel_prompt_versions` | 提示词版本表 |
-| `zettel_meta` | 元数据表 |
+| Table | Description |
+|-------|-------------|
+| `zettel_notes` | Main notes table (title, content, status, confidence...) |
+| `zettel_links` | Bi-directional links table (11 semantic link types) |
+| `zettel_tags` | Tags table |
+| `zettel_note_tags` | Note-tag association table |
+| `zettel_reviews` | Review records table |
+| `zettel_feedback` | Feedback data table |
+| `zettel_prompt_versions` | Prompt version table |
+| `zettel_meta` | Metadata table |
 
-FTS5 虚拟表提供全文搜索能力。
+FTS5 virtual tables provide full-text search capabilities.
 
 ---
 
-## 🧪 测试
+## 🧪 Testing
 
 ```bash
-# 运行所有测试
+# Run all tests
 npm test
 
-# 监视模式
+# Watch mode
 npm run test:watch
 ```
 
-当前测试覆盖：
-- Repository 层（CRUD、搜索、链接、标签）
-- Service 层（CEQRC、蒸馏、去重、解析）
-- Integration 层（配置、调度）
-- MCP Server（工具注册与调用）
+Current test coverage:
+- Repository layer (CRUD, search, links, tags)
+- Service layer (CEQRC, distillation, deduplication, parsing)
+- Integration layer (configuration, scheduling)
+- MCP Server (tool registration and invocation)
 
 ---
 
-## 📜 许可证
+## 📜 License
 
 [MIT](LICENSE) © Zettelkasten Contributors
 
 ---
 
-## 🙏 致谢
+## 🙏 Acknowledgements
 
-- 灵感来源于 [Niklas Luhmann](https://en.wikipedia.org/wiki/Niklas_Luhmann) 的 Zettelkasten 方法
-- 基于 [OpenClaw](https://github.com/openclaw) 插件架构构建
-- 使用 SQLite FTS5 实现全文搜索
+- Inspired by [Niklas Luhmann](https://en.wikipedia.org/wiki/Niklas_Luhmann)'s Zettelkasten method
+- Built on the [OpenClaw](https://github.com/openclaw) plugin architecture
+- Uses SQLite FTS5 for full-text search

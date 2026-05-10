@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/zettelkasten-infographic.png" alt="Zettelkasten Second Memory" width="100%">
+</p>
+
 # 🧠 Zettelkasten Second Memory
 
 > 为 AI 时代设计的卢曼卡片盒笔记系统 —— 原子化记录、双向链接、知识蒸馏、智能检索。

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/zettelkasten-infographic.png" alt="Zettelkasten Second Memory" width="100%">
+</p>
+
 # 🧠 Zettelkasten Second Memory
 
 > A Zettelkasten note-taking system designed for the AI era — atomic notes, bi-directional linking, knowledge distillation, and intelligent retrieval.

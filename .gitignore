@@ -43,3 +43,11 @@ Thumbs.db
 # Temporary
 tmp/
 temp/
+
+# Internal documentation (not for public release)
+plans/
+docs/OPENCLAW_TESTING_GUIDE.md
+src/INTEGRATION.md
+src/PHASE4-COMPLETION.md
+src/PHASE5-COMPLETION.md
+src/PHASE5-IMPLEMENTATION-SUMMARY.md

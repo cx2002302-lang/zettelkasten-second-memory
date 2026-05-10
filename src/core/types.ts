@@ -2,7 +2,7 @@ export type NoteType = "atomic" | "structure" | "source";
 
 export type NoteStatus = "FLEETING" | "LITERATURE" | "PERMANENT";
 
-export type NoteFolder = "inbox" | "references" | "zettels";
+export type NoteFolder = "inbox" | "references" | "zettels" | "archive";
 
 export type SourceType = "manual" | "distilled" | "ceqrc";
 

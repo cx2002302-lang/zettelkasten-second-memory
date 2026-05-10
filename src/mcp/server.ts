@@ -22,6 +22,8 @@ import { NoteService } from "../service/note-service.js";
 import { LinkService } from "../service/link-service.js";
 import { CEQRCEngine } from "../service/ceqrc-engine.js";
 import { DistillerService } from "../service/distiller-service.js";
+import { GlowCalculator } from "../engine/glow-calculator.js";
+import { PathFinder } from "../engine/path-finder.js";
 import type {
   ZettelNote,
   CreateNoteParams,
@@ -51,6 +53,8 @@ export class ZettelkastenMCPServer {
   private linkService: LinkService;
   private ceqrcEngine?: CEQRCEngine;
   private distillerService?: DistillerService;
+  private glowCalculator: GlowCalculator;
+  private pathFinder: PathFinder;
 
   constructor(
     private db: DatabaseSync,
@@ -59,6 +63,8 @@ export class ZettelkastenMCPServer {
   ) {
     this.noteService = new NoteService(db, basePath);
     this.linkService = new LinkService(db);
+    this.glowCalculator = new GlowCalculator(db);
+    this.pathFinder = new PathFinder(db);
     
     // 如果提供了 LLM Provider，初始化 CEQRC 引擎和蒸馏服务
     if (config.llmProvider) {
@@ -110,12 +116,68 @@ export class ZettelkastenMCPServer {
   /**
    * 查找路径（两张卡片之间的最短路径）
    */
-  async findPath(fromNoteId: string, toNoteId: string) {
+  async findPath(fromNoteId: string, toNoteId: string, options?: { maxDepth?: number; linkTypeFilter?: string[] }) {
     if (!this.config.enableReadOnlyTools) {
       throw new Error("Read-only tools are disabled");
     }
     
-    return this.linkService.findPath(fromNoteId, toNoteId);
+    return this.pathFinder.findPath(fromNoteId, toNoteId, options);
+  }
+
+  /**
+   * 获取发光度排行
+   */
+  async glowRanking(options?: { limit?: number; statusFilter?: string[]; minGlow?: number }) {
+    if (!this.config.enableReadOnlyTools) {
+      throw new Error("Read-only tools are disabled");
+    }
+    
+    return this.glowCalculator.getRanking(options);
+  }
+
+  /**
+   * 获取僵尸笔记
+   */
+  async findZombies(limit?: number) {
+    if (!this.config.enableReadOnlyTools) {
+      throw new Error("Read-only tools are disabled");
+    }
+    
+    return this.glowCalculator.findZombies(limit);
+  }
+
+  /**
+   * 搜索已归档笔记
+   */
+  async searchArchived(query: string, limit: number = 20) {
+    if (!this.config.enableReadOnlyTools) {
+      throw new Error("Read-only tools are disabled");
+    }
+    
+    return this.noteService.searchNotes(query, limit, { includeArchived: true });
+  }
+
+  /**
+   * 归档笔记
+   */
+  async archiveNote(noteId: string) {
+    if (!this.config.enableReadWriteTools) {
+      throw new Error("Read-write tools are disabled");
+    }
+    
+    return await this.noteService.updateNote(noteId, { folder: "archive" as NoteFolder });
+  }
+
+  /**
+   * 恢复归档笔记
+   */
+  async unarchiveNote(noteId: string) {
+    if (!this.config.enableReadWriteTools) {
+      throw new Error("Read-write tools are disabled");
+    }
+    
+    // 恢复到 references（默认恢复位置）
+    return await this.noteService.updateNote(noteId, { folder: "references" as NoteFolder });
   }
 
   // ========== 工具方法（后台读写） ==========
@@ -294,10 +356,56 @@ export class ZettelkastenMCPServer {
             properties: {
               fromNoteId: { type: "string", description: "起始笔记 ID" },
               toNoteId: { type: "string", description: "目标笔记 ID" },
+              maxDepth: { type: "number", description: "最大搜索深度", default: 6 },
+              linkTypeFilter: { type: "array", items: { type: "string" }, description: "链接类型过滤" },
             },
             required: ["fromNoteId", "toNoteId"],
           },
-          handler: async (args: any) => await this.findPath(args.fromNoteId, args.toNoteId),
+          handler: async (args: any) => await this.findPath(args.fromNoteId, args.toNoteId, {
+            maxDepth: args.maxDepth,
+            linkTypeFilter: args.linkTypeFilter,
+          }),
+        },
+        {
+          name: "zk_glow_ranking",
+          description: "按发光度排序展示笔记，支持分类筛选",
+          inputSchema: {
+            type: "object",
+            properties: {
+              limit: { type: "number", description: "返回数量", default: 20 },
+              statusFilter: { type: "array", items: { type: "string", enum: ["evergreen", "active", "stable", "zombie"] }, description: "状态筛选" },
+              minGlow: { type: "number", description: "最小发光度", default: 0 },
+            },
+          },
+          handler: async (args: any) => await this.glowRanking({
+            limit: args.limit,
+            statusFilter: args.statusFilter,
+            minGlow: args.minGlow,
+          }),
+        },
+        {
+          name: "zk_find_zombies",
+          description: "找出过期僵尸笔记（半年未更新且无引用）",
+          inputSchema: {
+            type: "object",
+            properties: {
+              limit: { type: "number", description: "返回数量", default: 20 },
+            },
+          },
+          handler: async (args: any) => await this.findZombies(args.limit),
+        },
+        {
+          name: "zk_search_archived",
+          description: "搜索已归档的笔记（默认搜索不包含归档）",
+          inputSchema: {
+            type: "object",
+            properties: {
+              query: { type: "string", description: "搜索关键词" },
+              limit: { type: "number", description: "返回数量", default: 20 },
+            },
+            required: ["query"],
+          },
+          handler: async (args: any) => await this.searchArchived(args.query, args.limit),
         }
       );
     }
@@ -332,12 +440,36 @@ export class ZettelkastenMCPServer {
               id: { type: "string", description: "笔记 ID" },
               title: { type: "string", description: "新标题" },
               content: { type: "string", description: "新内容" },
-              folder: { type: "string", enum: ["inbox", "references", "zettels"] },
+              folder: { type: "string", enum: ["inbox", "references", "zettels", "archive"] },
               reviewed: { type: "boolean", description: "是否已审核" },
             },
             required: ["id"],
           },
           handler: async (args: any) => await this.updateNote(args.id, args),
+        },
+        {
+          name: "zk_archive_note",
+          description: "归档笔记（移到 archive 文件夹）",
+          inputSchema: {
+            type: "object",
+            properties: {
+              noteId: { type: "string", description: "笔记 ID" },
+            },
+            required: ["noteId"],
+          },
+          handler: async (args: any) => await this.archiveNote(args.noteId),
+        },
+        {
+          name: "zk_unarchive_note",
+          description: "恢复归档笔记（回到 references）",
+          inputSchema: {
+            type: "object",
+            properties: {
+              noteId: { type: "string", description: "笔记 ID" },
+            },
+            required: ["noteId"],
+          },
+          handler: async (args: any) => await this.unarchiveNote(args.noteId),
         },
         {
           name: "zk_run_ceqrc_workflow",

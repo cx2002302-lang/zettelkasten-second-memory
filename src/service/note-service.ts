@@ -163,8 +163,12 @@ export class NoteService {
   /**
    * 搜索笔记（全文搜索）
    */
-  async searchNotes(query: string, limit: number = 20) {
-    return await this.noteRepo.search(query, limit);
+  async searchNotes(query: string, limit: number = 20, options?: { includeArchived?: boolean }) {
+    const results = await this.noteRepo.search(query, limit);
+    if (!options?.includeArchived) {
+      return results.filter(r => r.note.folder !== 'archive');
+    }
+    return results;
   }
 
   /**

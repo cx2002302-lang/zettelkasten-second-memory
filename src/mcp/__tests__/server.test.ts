@@ -63,7 +63,7 @@ describe("ZettelkastenMCPServer", () => {
 
 
   describe("getTools", () => {
-    it("只读服务器应该返回4个工具", () => {
+    it("只读服务器应该返回7个工具", () => {
       const readonlyServer = new ZettelkastenMCPServer(mockDb, "/test/path", {
         dbPath: "/test/db.sqlite",
         notesBaseDir: "/test/notes",
@@ -72,14 +72,17 @@ describe("ZettelkastenMCPServer", () => {
       });
 
       const tools = readonlyServer.getTools();
-      expect(tools).toHaveLength(4);
+      expect(tools).toHaveLength(7);
       expect(tools.map((t: any) => t.name)).toContain("zk_search_notes");
       expect(tools.map((t: any) => t.name)).toContain("zk_get_note");
       expect(tools.map((t: any) => t.name)).toContain("zk_get_backlinks");
       expect(tools.map((t: any) => t.name)).toContain("zk_find_path");
+      expect(tools.map((t: any) => t.name)).toContain("zk_glow_ranking");
+      expect(tools.map((t: any) => t.name)).toContain("zk_find_zombies");
+      expect(tools.map((t: any) => t.name)).toContain("zk_search_archived");
     });
 
-    it("读写服务器应该返回10个工具", () => {
+    it("读写服务器应该返回15个工具", () => {
       const rwServer = new ZettelkastenMCPServer(mockDb, "/test/path", {
         dbPath: "/test/db.sqlite",
         notesBaseDir: "/test/notes",
@@ -89,7 +92,7 @@ describe("ZettelkastenMCPServer", () => {
       });
 
       const tools = rwServer.getTools();
-      expect(tools).toHaveLength(10);
+      expect(tools).toHaveLength(15);
       expect(tools.map((t: any) => t.name)).toContain("zk_search_notes");
       expect(tools.map((t: any) => t.name)).toContain("zk_create_note");
       expect(tools.map((t: any) => t.name)).toContain("zk_update_note");
@@ -97,6 +100,11 @@ describe("ZettelkastenMCPServer", () => {
       expect(tools.map((t: any) => t.name)).toContain("zk_distill_memory");
       expect(tools.map((t: any) => t.name)).toContain("zk_get_inbox_queue");
       expect(tools.map((t: any) => t.name)).toContain("zk_review_note");
+      expect(tools.map((t: any) => t.name)).toContain("zk_glow_ranking");
+      expect(tools.map((t: any) => t.name)).toContain("zk_find_zombies");
+      expect(tools.map((t: any) => t.name)).toContain("zk_search_archived");
+      expect(tools.map((t: any) => t.name)).toContain("zk_archive_note");
+      expect(tools.map((t: any) => t.name)).toContain("zk_unarchive_note");
     });
 
     it("完全禁用的服务器应该返回0个工具", () => {

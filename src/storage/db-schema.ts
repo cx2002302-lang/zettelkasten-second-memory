@@ -136,13 +136,113 @@ export function ensureZettelkastenSchema(
   }
   
   // 插入初始元数据
-  ensureMetaValue(db, "schema_version", "2.0.0");
+  ensureMetaValue(db, "schema_version", "2.1.0");
   ensureMetaValue(db, "created_at", new Date().toISOString());
+  
+  // Phase 3: Wave 1 - 知识发光度与归档支持
+  ensurePhase3Wave1Schema(db);
   
   // Phase 5: 人机共生与反馈 - 创建审核和反馈相关表
   ensurePhase5Schema(db);
   
   return { ftsAvailable, ...(ftsError ? { ftsError } : {}) };
+}
+
+/**
+ * Phase 3 Wave 1: 知识发光度与归档支持
+ * - zettel_note_stats 预计算统计表
+ * - folder 列支持 archive（兼容旧数据库迁移）
+ */
+function ensurePhase3Wave1Schema(db: DatabaseSync): void {
+  // 1. 兼容旧数据库：检查 zettel_notes 是否支持 archive folder
+  const tableInfo = db
+    .prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='zettel_notes'`)
+    .get() as { sql: string } | undefined;
+  
+  if (tableInfo && !tableInfo.sql.includes("'archive'")) {
+    // 旧表不含 archive，需要重建
+    migrateNotesTableForArchive(db);
+  }
+  
+  // 2. 创建发光度统计表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS zettel_note_stats (
+      note_id TEXT PRIMARY KEY REFERENCES zettel_notes(id) ON DELETE CASCADE,
+      pagerank_score REAL DEFAULT 0,
+      backlink_count INTEGER DEFAULT 0,
+      outgoing_link_count INTEGER DEFAULT 0,
+      days_since_created INTEGER DEFAULT 0,
+      days_since_updated INTEGER DEFAULT 0,
+      glow_score REAL DEFAULT 0,
+      decay_factor REAL DEFAULT 0,
+      glow_status TEXT DEFAULT 'stable' CHECK (glow_status IN ('evergreen', 'active', 'stable', 'zombie')),
+      last_calculated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+  
+  // 3. 创建索引
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_note_stats_glow ON zettel_note_stats(glow_score DESC);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_note_stats_status ON zettel_note_stats(glow_status);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_notes_folder ON zettel_notes(folder);`);
+}
+
+/**
+ * 迁移 zettel_notes 表以支持 archive folder
+ * SQLite 不支持修改 CHECK 约束，必须重建表
+ */
+function migrateNotesTableForArchive(db: DatabaseSync): void {
+  db.exec(`PRAGMA foreign_keys = OFF;`);
+  db.exec(`BEGIN TRANSACTION;`);
+  
+  try {
+    // 1. 创建新表（含 archive）
+    db.exec(`
+      CREATE TABLE zettel_notes_new (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        summary TEXT,
+        type TEXT NOT NULL CHECK (type IN ('atomic', 'structure', 'source')),
+        status TEXT NOT NULL CHECK (status IN ('FLEETING', 'LITERATURE', 'PERMANENT')),
+        folder TEXT NOT NULL CHECK (folder IN ('inbox', 'references', 'zettels', 'archive')) DEFAULT 'inbox',
+        confidence REAL CHECK (confidence >= 0 AND confidence <= 1),
+        source TEXT CHECK (source IN ('manual', 'distilled', 'ceqrc')),
+        reviewed BOOLEAN NOT NULL DEFAULT FALSE,
+        session_key TEXT,
+        file_path TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    
+    // 2. 复制数据
+    db.exec(`
+      INSERT INTO zettel_notes_new
+      SELECT id, title, content, summary, type, status, folder, confidence, source, reviewed, session_key, file_path, created_at, updated_at
+      FROM zettel_notes;
+    `);
+    
+    // 3. 删除旧表（外键约束会自动处理关联表）
+    db.exec(`DROP TABLE zettel_notes;`);
+    
+    // 4. 重命名新表
+    db.exec(`ALTER TABLE zettel_notes_new RENAME TO zettel_notes;`);
+    
+    // 5. 重建索引
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_notes_type ON zettel_notes(type);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_notes_status ON zettel_notes(status);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_notes_session_key ON zettel_notes(session_key);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_notes_created_at ON zettel_notes(created_at);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_notes_updated_at ON zettel_notes(updated_at);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_notes_folder ON zettel_notes(folder);`);
+    
+    db.exec(`COMMIT;`);
+  } catch (err) {
+    db.exec(`ROLLBACK;`);
+    throw err;
+  } finally {
+    db.exec(`PRAGMA foreign_keys = ON;`);
+  }
 }
 
 /**

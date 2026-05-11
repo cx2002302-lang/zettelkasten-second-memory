@@ -4,12 +4,28 @@
 
 # 🧠 Zettelkasten Second Memory
 
-> 为 AI 时代设计的卢曼卡片盒笔记系统 —— 原子化记录、双向链接、知识蒸馏、智能检索。
+> **[OpenClaw](https://github.com/openclaw) 插件** —— 将 AI 对话转化为永久 Zettelkasten 知识库：原子化笔记、双向链接、知识蒸馏、智能检索。
 
 [English](README.md) · [简体中文](README.zh.md)
 
+[![Version](https://img.shields.io/badge/version-v1.0.0--beta.3-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24-green.svg)](https://github.com/openclaw)
+[![MCP Server](https://img.shields.io/badge/MCP-18%20Tools-orange.svg)](src/mcp/server.ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.14.0-blue.svg)](package.json)
+
+---
+
+## 📌 当前版本
+
+| 组件 | 版本 | 状态 |
+|------|------|------|
+| 插件 | `v1.0.0-beta.3` | 活跃开发中 |
+| Skill | `v1.0.0-beta.2` | 活跃开发中 |
+| OpenClaw | `2026.4.24` | 在 2026.4.24 上开发测试；兼容 >= 2026.4.23 |
+| Node.js | `>= 22.14.0` | 必需（`node:sqlite`） |
+
+**最新发布**: [v1.0.0-beta.3](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.3) — Wave 3: 知识热力图 + 网络图谱
 
 ---
 

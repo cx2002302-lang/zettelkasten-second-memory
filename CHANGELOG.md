@@ -1,68 +1,58 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+## v1.0.0-beta.3 — Wave 3: Knowledge Heatmap & Network Graph
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/spec/v2.0.0.html).
+**Release Date**: 2026-05-11
 
-## [Unreleased]
+### ✨ New Features
 
-### Planned
-- [ ] English documentation completion
-- [ ] Interactive web dashboard for knowledge graph visualization
-- [ ] Plugin marketplace submission
+- **Knowledge Heatmap** (`zk_heatmap`)
+  - Real-time knowledge base activity analysis
+  - Folder distribution, glow score distribution, connection density ranking
+  - Isolated notes detection, recent activity tracking
+  - CLI: `openclaw zk heatmap --days 30`
 
----
+- **Network Graph Visualization** (`zk_network_graph`)
+  - Export knowledge graph as JSON with nodes and edges
+  - Support folder filter, glow score threshold, node limit
+  - Degree calculation and weighted edge rendering
+  - CLI: `openclaw zk graph-export --limit 200 --glow-min 0.4`
 
-## [1.0.0-beta.2] - 2026-05-11
+- **18 MCP Tools** (9 read-only + 9 read-write)
+  - Read-only: `zk_search_notes`, `zk_get_note`, `zk_get_backlinks`, `zk_find_path`, `zk_glow_ranking`, `zk_find_zombies`, `zk_search_archived`, `zk_get_archive_log`, `zk_knowledge_heatmap`, `zk_network_graph`
+  - Read-write: `zk_create_note`, `zk_update_note`, `zk_archive_note`, `zk_unarchive_note`, `zk_run_ceqrc_workflow`, `zk_distill_memory`, `zk_get_inbox_queue`, `zk_review_note`
 
-### Added — Wave 2: Auto-Archive & Knowledge Health
-- 🧟 **Zombie note detection** — Identify stale notes (180+ days, zero backlinks) via `zk_find_zombies`
-- ✨ **Knowledge glow ranking** — PageRank + citation + recency decay scoring via `zk_glow_ranking`
-- 🔎 **Weighted path discovery** — BFS shortest path with link-type weights and Chinese explanations via `zk_find_path`
-- 📦 **Archive system** — Move notes to `archive` folder with `zk_archive_note` / `zk_unarchive_note`
-- 🌙 **Auto-archive scheduler** — Nightly scan & auto-archive zombie notes at 2:00 AM
-- 📜 **Archive audit log** — Full history of archive/unarchive/auto_archive actions via `zk_get_archive_log` / `zk archive-log`
-- ⏱️ **Timestamp preservation** — Archive/unarchive operations no longer refresh `updated_at`
-- 🔍 **Archived note search** — Dedicated `zk_search_archived` for finding archived content
-- 🛠️ **New CLI commands** — `zk auto-archive`, `zk archive-log`
+### 🔧 Bug Fixes
 
-### Fixed
-- Plugin now properly registers all 16 MCP tools (5 Wave 1 tools were missing from `plugin/index.ts`)
+- **Commander.js `parseInt`/`parseFloat` NaN bug**: Option handler signature `(value, previous)` caused `parseInt("10", 200)` → `NaN` → SQLite `datatype mismatch`. Fixed with `safeParseInt`/`safeParseFloat` wrappers and `Number.isFinite()` validation.
 
----
+### 🧪 Test Coverage
 
-## [1.0.0-beta.1] - 2026-05-11
-
-### Added — Wave 1: Core Foundation
-- 📝 **Atomic note-taking system** — Three note types: `atomic`, `structure`, `source`
-- 🔗 **11 semantic link types** — `supports`, `refines`, `extends`, `contradicts`, `is_example_of`, `related` and their reverse relations
-- 🔍 **Full-text search engine** — SQLite FTS5 + LIKE dual-engine merge search with Chinese support
-- 🤖 **OpenClaw MCP integration** — 10 MCP tools for AI agents to read/write the knowledge base
-- 🔄 **CEQRC cognitive pipeline** — Confidence-routed inbox processing with nightly distillation
-- 🏷️ **Tag system** — Tag creation, association, and statistical analysis
-- 📦 **Markdown persistence** — All notes stored as `.md` files, database only holds metadata and links
-- 🧠 **Brain Skill** — AI Skill with prompt evolution, feedback loops, and 5-version archive rotation
-- 🛠️ **CLI commands** — `zk init`, `zk doctor`, `zk status`, `zk new`, `zk list`, `zk search`, `zk show`, `zk link`
-- 🌙 **Nightly cron scheduler** — Automatic CEQRC distillation at 2:00 AM daily
-- 📎 **Session hook** — Auto-archive session memories when conversations end
-- ✅ **Test suite** — 20+ test files covering repository, service, integration, and MCP layers
-
-### Technical
-- Node.js 22+ with native `node:sqlite`
-- TypeScript ESM modules
-- Plugin manifest: `activation.onStartup` (required for MCP tool registration)
-- Configurable confidence thresholds for inbox routing
+- Agent E2E: **34/34 passed** (CLI + MCP handlers + plugin config)
+- Unit tests: **112/112 passed** (heatmap-service, note-service)
 
 ---
 
-## Release History
+## v1.0.0-beta.2 — Wave 2: Auto-Archive & Knowledge Health
 
-| Version | Date | Status |
-|---------|------|--------|
-| v1.0.0-beta.2 | 2026-05-11 | 🚧 Beta — Wave 2: Auto-archive & knowledge health |
-| v1.0.0-beta.1 | 2026-05-11 | 🚧 Beta — First public release |
+**Release Date**: 2026-05-10
+
+### ✨ New Features
+
+- **Auto-Archive Scheduling**: Cron-based zombie note detection and archiving
+- **Archive History**: Full log of archive/unarchive operations with timestamps
+- **Timestamp Preservation**: Archived notes retain original creation/update times
+- **Archive Service**: `archive-service.ts` with dry-run support
 
 ---
 
-**Full Changelog**: 查看 GitHub [Releases](https://github.com/YOUR_USERNAME/zettelkasten-second-memory/releases) 页面
+## v1.0.0-beta.1 — Wave 1: Knowledge Glow & Path Search
+
+**Release Date**: 2026-05-09
+
+### ✨ New Features
+
+- **Knowledge Glow Score**: CEQRC engine with confidence, entropy, quality, recency, connections
+- **Path Finder**: Bidirectional BFS for shortest knowledge path between notes
+- **Archive Mechanism**: Manual archive/unarchive with folder migration
+- **FTS Search**: Full-text search with SQLite FTS5

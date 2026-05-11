@@ -8,12 +8,12 @@ import { join } from "node:path";
 import { TemplateManager, type TemplateVariables } from "../template-manager.js";
 import { TEMPLATE_FILES } from "../../core/constants.js";
 
-const TEST_DIR = "/tmp/zettelkasten-test-templates-" + Date.now();
-
 describe("TemplateManager", () => {
   let manager: TemplateManager;
+  let TEST_DIR: string;
 
   beforeEach(async () => {
+    TEST_DIR = "/tmp/zettelkasten-test-templates-" + Date.now() + "-" + Math.random().toString(36).substring(2, 9);
     await fs.mkdir(TEST_DIR, { recursive: true });
     manager = new TemplateManager(TEST_DIR);
   });

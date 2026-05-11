@@ -9,14 +9,15 @@ import { promises as fs } from "node:fs";
 import { PromptVersionRepository } from "../prompt-version-repository.js";
 import type { PromptType } from "../../core/types-phase5.js";
 
-const TEST_DB_DIR = "/tmp/zettelkasten-test-prompt-" + Date.now();
-const TEST_DB_PATH = join(TEST_DB_DIR, "test.db");
-
 describe("PromptVersionRepository", () => {
   let db: DatabaseSync;
   let repository: PromptVersionRepository;
+  let TEST_DB_DIR: string;
+  let TEST_DB_PATH: string;
 
   beforeEach(async () => {
+    TEST_DB_DIR = "/tmp/zettelkasten-test-prompt-" + Date.now() + "-" + Math.random().toString(36).substring(2, 9);
+    TEST_DB_PATH = join(TEST_DB_DIR, "test.db");
     await fs.mkdir(TEST_DB_DIR, { recursive: true });
     db = new DatabaseSync(TEST_DB_PATH);
     

@@ -24,6 +24,11 @@
 | 🔄 **Knowledge Distillation** | CEQRC pipeline automatically refines fragmented notes into permanent knowledge |
 | 🏷️ **Tag System** | Flexible tag classification and statistics, supporting tag-cloud analysis |
 | 📦 **Markdown Native** | All notes stored as Markdown, your data belongs entirely to you |
+| 🧟 **Zombie Detection** | Auto-detect stale notes (180+ days, zero backlinks) with `zk_find_zombies` |
+| ✨ **Glow Ranking** | Knowledge importance scoring via PageRank + citation + recency decay |
+| 📦 **Archive System** | Move cold notes to `archive` folder; auto-archive nightly at 2:00 AM |
+| 📜 **Audit Log** | Full archive/unarchive history with `zk_get_archive_log` |
+| 🔎 **Path Discovery** | Weighted shortest path between any two notes with Chinese explanations |
 
 ---
 

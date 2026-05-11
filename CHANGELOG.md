@@ -1,5 +1,43 @@
 # Changelog
 
+## v1.0.0-beta.4 — Test Suite + Input Validation + Performance Benchmark
+
+**Release Date**: 2026-05-12
+
+### ✨ New Features
+
+- **Performance Benchmark Suite** (`scripts/benchmark.mjs`)
+  - Tested at 1K / 5K / 10K notes scale
+  - All 7 performance thresholds passed at 10K scale
+  - FTS search 1.9ms, single note read 0.08ms, glow recalc 1,013ms
+  - Full report: `plans/PERFORMANCE-BENCHMARK.md`
+
+- **E2E Tool Chain Test** (`scripts/e2e-tool-test.mjs`)
+  - End-to-end validation of all 16 MCP tool flows
+  - Covers create, search, link, glow, path, heatmap, archive, review, feedback
+
+### 🛡️ Input Validation
+
+- **NoteService**: Reject empty title/content, confidence must be 0-1 (create + update)
+- **LinkService**: Reject self-links, validate link type against 11 allowed values
+- **HeatmapService**: Clamp `glowMin` to [0,1], normalize negative `limit` to 0
+
+### 🔧 Bug Fixes
+
+- **archive-service.ts**: `zombie.folder` field did not exist in `GlowMetrics`, causing already-archived notes to be re-processed. Fixed by querying `zettel_notes.folder` directly.
+- **feedback-repository.ts**: `source` field could be `undefined`, causing SQLite binding error. Fixed with `source ?? null`.
+- **feedback-repository.ts**: `rating` returned `null` from DB but type expected `undefined`. Fixed with `row.rating ?? undefined`.
+- **feedback-service.test.ts**: Time race condition in `analyzeTrends` test — `now` created before `submitFeedback`, causing feedback `created_at` to be later than query end time. Fixed by using `tomorrow` as end boundary.
+
+### 🧪 Test Coverage
+
+- **689 tests passing**, 26 test files, 0 failures
+- New test files: `feedback-repository.test.ts` (25), `review-repository.test.ts` (20), `archive-service.test.ts` (14)
+- Heatmap boundary tests: empty DB, empty filters, negative limit, glowMin overflow
+- Input validation tests: empty strings, out-of-range confidence, self-links, invalid types
+
+---
+
 ## v1.0.0-beta.3 — Wave 3: Knowledge Heatmap & Network Graph
 
 **Release Date**: 2026-05-11

@@ -70,6 +70,17 @@ export class NoteService {
   ): Promise<ZettelNote> {
     const { confidence = DEFAULT_CONFIDENCE, source = "manual", skipLinkParsing = false } = options;
 
+    // 输入校验
+    if (!params.title || params.title.trim().length === 0) {
+      throw new Error("Note title cannot be empty");
+    }
+    if (!params.content || params.content.trim().length === 0) {
+      throw new Error("Note content cannot be empty");
+    }
+    if (confidence < 0 || confidence > 1) {
+      throw new Error("Confidence must be between 0 and 1");
+    }
+
     // 1. 确定目标文件夹（置信度路由）
     const folder = this.routeByConfidence(confidence);
 
@@ -122,6 +133,17 @@ export class NoteService {
   ): Promise<ZettelNote | null> {
     const existing = await this.noteRepo.get(id);
     if (!existing) return null;
+
+    // 输入校验
+    if (params.title !== undefined && params.title.trim().length === 0) {
+      throw new Error("Note title cannot be empty");
+    }
+    if (params.content !== undefined && params.content.trim().length === 0) {
+      throw new Error("Note content cannot be empty");
+    }
+    if (params.confidence !== undefined && (params.confidence < 0 || params.confidence > 1)) {
+      throw new Error("Confidence must be between 0 and 1");
+    }
 
     // 更新字段
     const updated = await this.noteRepo.update(id, params);

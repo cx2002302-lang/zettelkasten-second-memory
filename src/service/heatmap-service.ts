@@ -78,6 +78,9 @@ export class KnowledgeHeatmapService {
    * 生成知识热力图数据
    */
   generateHeatmap(days: number = 30): HeatmapData {
+    if (days < 1) {
+      days = 1;
+    }
     const endDate = new Date().toISOString().split("T")[0];
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
       .toISOString()
@@ -294,9 +297,9 @@ export class KnowledgeHeatmapService {
     folderFilter?: string[];
     glowMin?: number;
   }): NetworkGraph {
-    const limit = Math.floor(Number(options?.limit ?? 200));
+    const limit = Math.max(0, Math.floor(Number(options?.limit ?? 200)));
     const folderFilter = options?.folderFilter;
-    const glowMin = Number(options?.glowMin ?? 0);
+    const glowMin = Math.max(0, Math.min(1, Number(options?.glowMin ?? 0)));
 
     let nodeSql = `
       SELECT n.id, n.title, n.folder,

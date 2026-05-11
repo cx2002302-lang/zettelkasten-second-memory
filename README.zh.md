@@ -8,7 +8,7 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-[![Version](https://img.shields.io/badge/version-v1.0.0--beta.3-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.0--beta.4-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24-green.svg)](https://github.com/openclaw)
 [![MCP Server](https://img.shields.io/badge/MCP-18%20Tools-orange.svg)](src/mcp/server.ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -25,7 +25,7 @@
 | OpenClaw | `2026.4.24` | 在 2026.4.24 上开发测试；兼容 >= 2026.4.23 |
 | Node.js | `>= 22.14.0` | 必需（`node:sqlite`） |
 
-**最新发布**: [v1.0.0-beta.3](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.3) — Wave 3: 知识热力图 + 网络图谱
+**最新发布**: [v1.0.0-beta.4](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.4) — 测试体系完善 + 输入校验 + 性能基准测试
 
 ---
 
@@ -45,6 +45,27 @@
 | 📦 **归档系统** | 将冷笔记移入 `archive` 文件夹；每日凌晨 2:00 自动归档 |
 | 📜 **审计日志** | 完整的归档/恢复/自动归档操作历史，`zk_get_archive_log` |
 | 🔎 **路径发现** | 任意两条笔记间的带权最短路径，支持中文路径解释 |
+
+---
+
+## ⚡ 性能基准
+
+<p align="center">
+  <img src="docs/assets/performance-benchmark-infographic-CN.png" alt="性能基准测试" width="100%">
+</p>
+
+**测试环境**: Node.js v22.22.2, SQLite `:memory:`, 2026-05-12  
+**测试规模**: 10,000 笔记, 30,000 链接 | **全部 7 项阈值通过** ✅  
+**详细报告**: [`plans/PERFORMANCE-BENCHMARK.md`](plans/PERFORMANCE-BENCHMARK.md)
+
+| 操作 | 1K 笔记 | 5K 笔记 | 10K 笔记 | 阈值 |
+|------|---------|---------|----------|------|
+| FTS 全文搜索 | 2.8ms | 1.8ms | **1.9ms** | < 100ms ✅ |
+| 单条读取 | 0.24ms | 0.08ms | **0.08ms** | < 10ms ✅ |
+| 发光度重计算 | 161ms | 521ms | **1,013ms** | < 5s ✅ |
+| 知识图谱 | 3.8ms | 3.8ms | **5.5ms** | < 500ms ✅ |
+| 热力图 | 5.7ms | 14.9ms | **30.0ms** | < 200ms ✅ |
+| 路径查找 | 0.66ms | 0.28ms | **0.20ms** | < 500ms ✅ |
 
 ---
 

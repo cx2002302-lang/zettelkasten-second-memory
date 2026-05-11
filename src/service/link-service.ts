@@ -61,6 +61,19 @@ export class LinkService {
     this.validateNoteExists(fromNoteId);
     this.validateNoteExists(toNoteId);
 
+    // 输入校验
+    if (fromNoteId === toNoteId) {
+      throw new Error("Cannot create a link from a note to itself");
+    }
+    const validLinkTypes: LinkType[] = [
+      "supports", "supported_by", "refines", "refined_by",
+      "extends", "extended_by", "contradicts", "contradicted_by",
+      "is_example_of", "has_example", "related",
+    ];
+    if (!validLinkTypes.includes(type)) {
+      throw new Error(`Invalid link type: ${type}. Valid types: ${validLinkTypes.join(", ")}`);
+    }
+
     // 创建主链接
     this.linkRepo.create(fromNoteId, toNoteId, type, context);
 

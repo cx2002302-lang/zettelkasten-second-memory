@@ -8,7 +8,7 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-[![Version](https://img.shields.io/badge/version-v1.0.0--beta.3-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.0--beta.4-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24-green.svg)](https://github.com/openclaw)
 [![MCP Server](https://img.shields.io/badge/MCP-18%20Tools-orange.svg)](src/mcp/server.ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -25,7 +25,7 @@
 | OpenClaw | `2026.4.24` | Developed & tested on 2026.4.24; compatible with >= 2026.4.23 |
 | Node.js | `>= 22.14.0` | Required (for `node:sqlite`) |
 
-**Latest Release**: [v1.0.0-beta.3](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.3) — Wave 3: Knowledge Heatmap & Network Graph
+**Latest Release**: [v1.0.0-beta.4](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.4) — Test Suite + Input Validation + Performance Benchmark
 
 ---
 
@@ -45,6 +45,27 @@
 | 📦 **Archive System** | Move cold notes to `archive` folder; auto-archive nightly at 2:00 AM |
 | 📜 **Audit Log** | Full archive/unarchive history with `zk_get_archive_log` |
 | 🔎 **Path Discovery** | Weighted shortest path between any two notes with Chinese explanations |
+
+---
+
+## ⚡ Performance Benchmark
+
+<p align="center">
+  <img src="docs/assets/performance-benchmark-infographic-EN.png" alt="Performance Benchmark" width="100%">
+</p>
+
+**Tested on**: Node.js v22.22.2, SQLite `:memory:`, 2026-05-12  
+**Scale**: 10,000 notes, 30,000 links | **All 7 thresholds passed** ✅  
+**Full report**: [`plans/PERFORMANCE-BENCHMARK.md`](plans/PERFORMANCE-BENCHMARK.md)
+
+| Operation | 1K Notes | 5K Notes | 10K Notes | Threshold |
+|-----------|----------|----------|-----------|-----------|
+| FTS Search | 2.8ms | 1.8ms | **1.9ms** | < 100ms ✅ |
+| Single Note Read | 0.24ms | 0.08ms | **0.08ms** | < 10ms ✅ |
+| Glow Recalculation | 161ms | 521ms | **1,013ms** | < 5s ✅ |
+| Knowledge Graph | 3.8ms | 3.8ms | **5.5ms** | < 500ms ✅ |
+| Heatmap | 5.7ms | 14.9ms | **30.0ms** | < 200ms ✅ |
+| Path Find | 0.66ms | 0.28ms | **0.20ms** | < 500ms ✅ |
 
 ---
 

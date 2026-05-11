@@ -105,7 +105,10 @@ export class ArchiveService {
     const result: AutoArchiveResult = { archived: 0, notes: [] };
 
     for (const zombie of zombies) {
-      if (zombie.folder === "archive") continue;
+      const folderRow = this.db
+        .prepare("SELECT folder FROM zettel_notes WHERE id = ?")
+        .get(zombie.noteId) as { folder: string } | undefined;
+      if (folderRow?.folder === "archive") continue;
 
       const reason = `自动归档：${zombie.status} 状态，发光度 ${zombie.glow.toFixed(3)}，${zombie.decay ? "衰减因子 " + zombie.decay.toFixed(3) : ""}`;
 

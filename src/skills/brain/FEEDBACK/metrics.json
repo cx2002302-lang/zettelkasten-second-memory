@@ -1,0 +1,29 @@
+{
+  "current_week": "2026w19",
+  "total_notes_created": 0,
+  "total_searches_performed": 0,
+  "total_links_created": 0,
+  "weekly": {
+    "2026w19": {
+      "notes_created": 0,
+      "searches_performed": 0,
+      "search_hit_rate": 0,
+      "links_created": 0,
+      "link_density": 0,
+      "user_corrections": 0,
+      "user_approvals": 0,
+      "avg_confidence": 0.5,
+      "session_archives": 0
+    }
+  },
+  "adjustments": [],
+  "params_history": [
+    {
+      "week": "2026w19",
+      "sensitivity": 0.6,
+      "search_depth": 20,
+      "link_threshold": 0.6,
+      "tag_limit": 3
+    }
+  ]
+}

@@ -15,7 +15,12 @@ import { DistillerService } from "../service/distiller-service.js";
 import { GlowCalculator } from "../engine/glow-calculator.js";
 import { PathFinder } from "../engine/path-finder.js";
 import { ArchiveService } from "../service/archive-service.js";
+import { KnowledgeHeatmapService } from "../service/heatmap-service.js";
 import { ensureZettelkastenSchema, getDatabaseStats } from "../storage/db-schema.js";
+
+// Safe parsers for Commander options (handler signature is (value, previous))
+const safeParseInt = (v: string) => parseInt(v, 10);
+const safeParseFloat = (v: string) => parseFloat(v);
 
 export const zettelkastenConfigSchema = z.object({
   notesDir: z.string().optional(),
@@ -78,6 +83,9 @@ export function resolveZettelkastenConfig(
           "zk_glow_ranking",
           "zk_find_zombies",
           "zk_search_archived",
+          "zk_get_archive_log",
+          "zk_knowledge_heatmap",
+          "zk_network_graph",
         ],
       },
       knowledge: {
@@ -86,6 +94,12 @@ export function resolveZettelkastenConfig(
           "zk_get_note",
           "zk_get_backlinks",
           "zk_find_path",
+          "zk_glow_ranking",
+          "zk_find_zombies",
+          "zk_search_archived",
+          "zk_get_archive_log",
+          "zk_knowledge_heatmap",
+          "zk_network_graph",
           "zk_create_note",
           "zk_update_note",
           "zk_run_ceqrc",
@@ -680,6 +694,57 @@ function createZkGetArchiveLogTool(archiveService: ArchiveService) {
   };
 }
 
+const ZkKnowledgeHeatmapSchema = Type.Object(
+  {
+    days: Type.Optional(Type.Number({ description: "统计天数", minimum: 1, maximum: 365 })),
+  },
+  { additionalProperties: false },
+);
+
+function createZkKnowledgeHeatmapTool(heatmapService: KnowledgeHeatmapService) {
+  return {
+    name: "zk_knowledge_heatmap",
+    label: "ZK Knowledge Heatmap",
+    description:
+      "Generate knowledge base heatmap data: daily activity, folder distribution, glow distribution, and link density ranking.",
+    parameters: ZkKnowledgeHeatmapSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const days = readNumberParam(rawParams, "days", { integer: true }) ?? 30;
+      const data = heatmapService.generateHeatmap(days);
+      return jsonResult(data);
+    },
+  };
+}
+
+const ZkNetworkGraphSchema = Type.Object(
+  {
+    limit: Type.Optional(Type.Number({ description: "Max nodes", minimum: 1, maximum: 500 })),
+    folder_filter: Type.Optional(Type.Array(Type.String(), { description: "Filter by folders" })),
+    glow_min: Type.Optional(Type.Number({ description: "Minimum glow score", minimum: 0, maximum: 1 })),
+  },
+  { additionalProperties: false },
+);
+
+function createZkNetworkGraphTool(heatmapService: KnowledgeHeatmapService) {
+  return {
+    name: "zk_network_graph",
+    label: "ZK Network Graph",
+    description:
+      "Generate knowledge graph data with nodes (notes) and edges (links) for visualization export.",
+    parameters: ZkNetworkGraphSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const limit = readNumberParam(rawParams, "limit", { integer: true }) ?? 200;
+      const folderFilter = Array.isArray(rawParams.folder_filter)
+        ? (rawParams.folder_filter as string[]).filter((f) => typeof f === "string")
+        : undefined;
+      const glowMin = readNumberParam(rawParams, "glow_min") ?? 0;
+
+      const graph = heatmapService.generateNetworkGraph({ limit, folderFilter, glowMin });
+      return jsonResult(graph);
+    },
+  };
+}
+
 // ========== Plugin Entry ==========
 
 export default definePluginEntry({
@@ -709,6 +774,7 @@ export default definePluginEntry({
     const glowCalculator = new GlowCalculator(db);
     const pathFinder = new PathFinder(db);
     const archiveService = new ArchiveService(db);
+    const heatmapService = new KnowledgeHeatmapService(db);
 
     const nullLLM = nullLLMProvider();
     const ceqrcEngine = new CEQRCEngine(nullLLM);
@@ -729,6 +795,8 @@ export default definePluginEntry({
     api.registerTool(createZkArchiveNoteTool(noteService), { name: "zk_archive_note" });
     api.registerTool(createZkUnarchiveNoteTool(noteService), { name: "zk_unarchive_note" });
     api.registerTool(createZkGetArchiveLogTool(archiveService), { name: "zk_get_archive_log" });
+    api.registerTool(createZkKnowledgeHeatmapTool(heatmapService), { name: "zk_knowledge_heatmap" });
+    api.registerTool(createZkNetworkGraphTool(heatmapService), { name: "zk_network_graph" });
 
     api.registerCli(
       ({ program }) => {
@@ -794,7 +862,7 @@ export default definePluginEntry({
           .requiredOption("--title <title>", "Note title")
           .requiredOption("--content <content>", "Note content (markdown)")
           .option("--tags <tags>", "Comma-separated tags")
-          .option("--confidence <n>", "Confidence score 0-1", parseFloat)
+          .option("--confidence <n>", "Confidence score 0-1", safeParseFloat)
           .option("--source <source>", "Source type", "manual")
           .action(async (opts) => {
             const tags = opts.tags
@@ -821,8 +889,8 @@ export default definePluginEntry({
           .option("--folder <folder>", "Filter by folder (inbox/references/zettels)")
           .option("--status <status>", "Filter by status (FLEETING/LITERATURE/PERMANENT)")
           .option("--tag <tag>", "Filter by tag")
-          .option("--limit <n>", "Max results", parseInt, 20)
-          .option("--offset <n>", "Offset for pagination", parseInt, 0)
+          .option("--limit <n>", "Max results", safeParseInt, 20)
+          .option("--offset <n>", "Offset for pagination", safeParseInt, 0)
           .action(async (opts) => {
             const conditions: string[] = [];
             const values: unknown[] = [];
@@ -856,7 +924,7 @@ export default definePluginEntry({
           .command("search")
           .description("Full-text search across notes")
           .argument("<query>", "Search query")
-          .option("--limit <n>", "Max results", parseInt, 20)
+          .option("--limit <n>", "Max results", safeParseInt, 20)
           .action(async (query, opts) => {
             const results = await noteService.searchNotes(query, opts.limit);
             if (results.length === 0) {
@@ -1083,7 +1151,7 @@ export default definePluginEntry({
           .description("Show archive/unarchive operation history")
           .option("--note-id <id>", "Filter by note ID")
           .option("--action <action>", "Filter by action (archive/unarchive/auto_archive)")
-          .option("--limit <n>", "Max results", parseInt, 20)
+          .option("--limit <n>", "Max results", safeParseInt, 20)
           .action(async (opts) => {
             const log = archiveService.getArchiveLog({
               noteId: opts.noteId,
@@ -1108,7 +1176,7 @@ export default definePluginEntry({
           .command("auto-archive")
           .description("Run auto-archive scan for zombie notes (dry-run by default)")
           .option("--execute", "Actually perform archiving (default is dry-run)")
-          .option("--limit <n>", "Max zombies to archive", parseInt, 50)
+          .option("--limit <n>", "Max zombies to archive", safeParseInt, 50)
           .action(async (opts) => {
             const dryRun = !opts.execute;
             api.logger.info(`[zettelkasten] Auto-archive scan (${dryRun ? "dry-run" : "LIVE"})...`);
@@ -1123,6 +1191,71 @@ export default definePluginEntry({
               if (dryRun) {
                 api.logger.info("[zettelkasten] (dry-run: no changes made, use --execute to archive)");
               }
+            }
+          });
+
+        zk
+          .command("heatmap")
+          .description("Show knowledge base heatmap")
+          .option("--days <n>", "Statistics period in days", safeParseInt, 30)
+          .action(async (opts) => {
+            const data = heatmapService.generateHeatmap(opts.days);
+            api.logger.info("[zettelkasten] ════════════════════════════════════════");
+            api.logger.info(`[zettelkasten] Knowledge Heatmap (${data.period.start} ~ ${data.period.end})`);
+            api.logger.info("[zettelkasten] ════════════════════════════════════════");
+            api.logger.info(`[zettelkasten] Notes: ${data.summary.totalNotes} | Links: ${data.summary.totalLinks} | AvgGlow: ${data.summary.avgGlow.toFixed(3)}`);
+            
+            api.logger.info("[zettelkasten] Folder Distribution:");
+            for (const f of data.folderDistribution) {
+              api.logger.info(`  ${f.folder}: ${f.count} (${f.percentage.toFixed(1)}%)`);
+            }
+            
+            api.logger.info("[zettelkasten] Glow Distribution:");
+            for (const g of data.glowDistribution) {
+              api.logger.info(`  ${g.status}: ${g.count} (${g.percentage.toFixed(1)}%) avg=${g.avgGlow.toFixed(3)}`);
+            }
+            
+            if (data.topConnected.length > 0) {
+              api.logger.info("[zettelkasten] Top Connected Notes:");
+              for (const n of data.topConnected.slice(0, 5)) {
+                api.logger.info(`  ${n.title}: in=${n.inDegree} out=${n.outDegree}`);
+              }
+            }
+            
+            if (data.dailyActivity.length > 0) {
+              api.logger.info("[zettelkasten] Recent Activity:");
+              for (const d of data.dailyActivity.slice(-7)) {
+                api.logger.info(`  ${d.date}: +${d.created} notes, ${d.updated} updates, ${d.linksCreated} links`);
+              }
+            }
+          });
+
+        zk
+          .command("graph-export")
+          .description("Export knowledge graph data (JSON)")
+          .option("--limit <n>", "Max nodes", safeParseInt, 200)
+          .option("--folder <folder>", "Filter by folder")
+          .option("--glow-min <n>", "Minimum glow score", safeParseFloat, 0)
+          .option("--output <path>", "Output file path")
+          .action(async (opts) => {
+            const folderFilter = opts.folder ? [opts.folder] : undefined;
+            const graph = heatmapService.generateNetworkGraph({
+              limit: Number.isFinite(opts.limit) ? opts.limit : 200,
+              folderFilter,
+              glowMin: Number.isFinite(opts.glowMin) ? opts.glowMin : 0,
+            });
+            
+            const output = JSON.stringify(graph, null, 2);
+            
+            if (opts.output) {
+              const { writeFileSync } = await import("node:fs");
+              writeFileSync(opts.output, output, "utf-8");
+              api.logger.info(`[zettelkasten] Graph exported to ${opts.output}`);
+            } else {
+              api.logger.info("[zettelkasten] ════════════════════════════════════════");
+              api.logger.info(`[zettelkasten] Knowledge Graph: ${graph.meta.nodeCount} nodes, ${graph.meta.edgeCount} edges`);
+              api.logger.info("[zettelkasten] ════════════════════════════════════════");
+              api.logger.info(output);
             }
           });
       },

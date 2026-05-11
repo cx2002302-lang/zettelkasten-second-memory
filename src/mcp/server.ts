@@ -25,6 +25,7 @@ import { DistillerService } from "../service/distiller-service.js";
 import { GlowCalculator } from "../engine/glow-calculator.js";
 import { PathFinder } from "../engine/path-finder.js";
 import { ArchiveService } from "../service/archive-service.js";
+import { KnowledgeHeatmapService } from "../service/heatmap-service.js";
 import type {
   ZettelNote,
   CreateNoteParams,
@@ -57,6 +58,7 @@ export class ZettelkastenMCPServer {
   private glowCalculator: GlowCalculator;
   private pathFinder: PathFinder;
   private archiveService: ArchiveService;
+  private heatmapService: KnowledgeHeatmapService;
 
   constructor(
     private db: DatabaseSync,
@@ -68,6 +70,7 @@ export class ZettelkastenMCPServer {
     this.glowCalculator = new GlowCalculator(db);
     this.pathFinder = new PathFinder(db);
     this.archiveService = new ArchiveService(db);
+    this.heatmapService = new KnowledgeHeatmapService(db);
     
     // 如果提供了 LLM Provider，初始化 CEQRC 引擎和蒸馏服务
     if (config.llmProvider) {
@@ -199,6 +202,28 @@ export class ZettelkastenMCPServer {
     }
     
     return this.archiveService.getArchiveLog(options);
+  }
+
+  /**
+   * 知识热力图
+   */
+  async knowledgeHeatmap(days?: number) {
+    if (!this.config.enableReadOnlyTools) {
+      throw new Error("Read-only tools are disabled");
+    }
+    
+    return this.heatmapService.generateHeatmap(days);
+  }
+
+  /**
+   * 知识图谱
+   */
+  async networkGraph(options?: { limit?: number; folderFilter?: string[]; glowMin?: number }) {
+    if (!this.config.enableReadOnlyTools) {
+      throw new Error("Read-only tools are disabled");
+    }
+    
+    return this.heatmapService.generateNetworkGraph(options);
   }
 
   // ========== 工具方法（后台读写） ==========
@@ -443,6 +468,34 @@ export class ZettelkastenMCPServer {
             noteId: args.noteId,
             action: args.action,
             limit: args.limit,
+          }),
+        },
+        {
+          name: "zk_knowledge_heatmap",
+          description: "生成知识库热力图数据（活跃度、分布、连接密度）",
+          inputSchema: {
+            type: "object",
+            properties: {
+              days: { type: "number", description: "统计天数", default: 30 },
+            },
+          },
+          handler: async (args: any) => await this.knowledgeHeatmap(args.days),
+        },
+        {
+          name: "zk_network_graph",
+          description: "生成知识图谱数据（节点+边，可导出可视化）",
+          inputSchema: {
+            type: "object",
+            properties: {
+              limit: { type: "number", description: "最大节点数", default: 200 },
+              folderFilter: { type: "array", items: { type: "string" }, description: "文件夹过滤" },
+              glowMin: { type: "number", description: "最小发光度", default: 0 },
+            },
+          },
+          handler: async (args: any) => await this.networkGraph({
+            limit: args.limit,
+            folderFilter: args.folderFilter,
+            glowMin: args.glowMin,
           }),
         }
       );

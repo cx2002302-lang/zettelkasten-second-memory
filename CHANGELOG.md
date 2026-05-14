@@ -24,6 +24,8 @@
 
 ### 🔧 Bug Fixes
 
+- **ZK-BUG-001**: `tools.alsoAllow` 放入 Skill ID（如 `"zettelkasten-brain"`）导致 OpenClaw Gateway 工具策略验证失败，引发崩溃-重启循环。修复：`deploy.sh` 自动清理 alsoAllow 中的非 `zk_` 前缀条目；`AGENTS.md` 明确文档说明。
+- **ZK-BUG-002**: `SKILL.md` 缺少 YAML frontmatter，可能影响 Skill 加载。修复：添加标准 frontmatter（name, description, version）。
 - **archive-service.ts**: `zombie.folder` field did not exist in `GlowMetrics`, causing already-archived notes to be re-processed. Fixed by querying `zettel_notes.folder` directly.
 - **feedback-repository.ts**: `source` field could be `undefined`, causing SQLite binding error. Fixed with `source ?? null`.
 - **feedback-repository.ts**: `rating` returned `null` from DB but type expected `undefined`. Fixed with `row.rating ?? undefined`.

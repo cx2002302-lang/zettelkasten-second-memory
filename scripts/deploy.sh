@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Zettelkasten Plugin Deploy Script
-# Deploys the plugin to the OpenClaw plugin directory
+# Zettelkasten 开发部署脚本
+# 从开发目录部署到 OpenClaw 插件目录
 #
 
 set -e
@@ -9,6 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 PLUGIN_DIR="${PLUGIN_DIR:-$HOME/.openclaw/zettelkasten-plugin}"
+CONFIG_FILE="$HOME/.openclaw/openclaw.json"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -22,18 +23,18 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERR]${NC} $1"; }
 
 echo "========================================"
-echo "Zettelkasten Plugin Deploy"
+echo "Zettelkasten Dev Deploy"
 echo "Source : $PROJECT_DIR"
 echo "Target : $PLUGIN_DIR"
 echo "========================================"
 
-# 1. Check source
+# 1. 检查源文件
 if [ ! -d "$PROJECT_DIR/src" ]; then
     log_error "Source not found: $PROJECT_DIR/src"
     exit 1
 fi
 
-# 2. Copy source
+# 2. 复制源码
 log_info "[1/5] Copying source..."
 mkdir -p "$PLUGIN_DIR"
 rsync -av --exclude='node_modules' --exclude='__tests__' \
@@ -41,7 +42,7 @@ rsync -av --exclude='node_modules' --exclude='__tests__' \
 cp -r "$PROJECT_DIR/src/"* "$PLUGIN_DIR/"
 log_ok "Source copied"
 
-# 3. Install dependencies
+# 3. 安装依赖
 log_info "[2/5] Installing dependencies..."
 if [ ! -f "$PLUGIN_DIR/package.json" ]; then
     cat > "$PLUGIN_DIR/package.json" << 'EOF'
@@ -61,7 +62,7 @@ cd "$PLUGIN_DIR"
 npm install --omit=dev --no-audit --no-fund 2>/dev/null || true
 log_ok "Dependencies installed"
 
-# 4. Verify plugin manifest
+# 4. 验证 plugin.json
 log_info "[3/5] Verifying plugin manifest..."
 PLUGIN_JSON="$PLUGIN_DIR/plugin/openclaw.plugin.json"
 if [ -f "$PLUGIN_JSON" ]; then
@@ -78,16 +79,43 @@ else
     exit 1
 fi
 
-# 5. Register plugin
+# 5. 注册插件
 log_info "[4/5] Registering plugin..."
 if command -v openclaw >/dev/null 2>&1; then
     PLUGIN_ENTRY="$(cd "$PLUGIN_DIR/plugin" && pwd)"
     
-    # Register path
+    # 注册路径
     openclaw config set plugins.load.paths "[\"$PLUGIN_ENTRY\"]" 2>/dev/null || true
     
-    # Enable plugin
+    # 启用插件
     openclaw config set plugins.entries.zettelkasten '{"enabled":true}' 2>/dev/null || true
+    
+    # BUG-001 修复: 清理 alsoAllow 中的无效条目（Skill ID 不应放入 alsoAllow）
+    log_info "Checking tools.alsoAllow..."
+    python3 -c "
+import json, os, sys
+cfg_path = os.path.expanduser('~/.openclaw/openclaw.json')
+try:
+    with open(cfg_path, 'r') as f:
+        cfg = json.load(f)
+    if 'tools' in cfg and 'alsoAllow' in cfg.get('tools', {}):
+        original = cfg['tools']['alsoAllow']
+        # 只保留 zk_ 前缀的工具名，移除 Skill ID（如 zettelkasten-brain, open-upsp 等）
+        cleaned = [x for x in original if x.startswith('zk_')]
+        removed = [x for x in original if not x.startswith('zk_')]
+        if removed:
+            cfg['tools']['alsoAllow'] = cleaned
+            with open(cfg_path, 'w') as f:
+                json.dump(cfg, f, indent=2, ensure_ascii=False)
+                f.write('\n')
+            print(f'Removed invalid alsoAllow entries: {removed}')
+        else:
+            print('alsoAllow is clean')
+    else:
+        print('alsoAllow not configured')
+except Exception as e:
+    print(f'Skip: {e}')
+" 2>/dev/null || log_warn "Could not verify alsoAllow"
     
     log_ok "Plugin registered"
 else
@@ -96,7 +124,7 @@ else
     echo "  plugins.load.paths: [\"$PLUGIN_DIR/plugin\"]"
 fi
 
-# 6. Verify
+# 6. 验证
 log_info "[5/5] Verifying..."
 REQUIRED=(
     "plugin/index.ts"

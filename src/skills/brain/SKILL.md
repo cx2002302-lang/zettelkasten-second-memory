@@ -1,12 +1,13 @@
-# Zettelkasten Brain Skill
-
-**ID**: `zettelkasten-brain`  
-**Version**: 1.0.0  
-**OpenClaw**: >= 2026.4.23  
-**Author**: Zettelkasten Team  
-**License**: Same as OpenClaw
-
 ---
+name: zettelkasten-brain
+description: Zettelkasten second-memory system for OpenClaw Agent — auto-capture conversation knowledge into a permanent knowledge base with bi-directional links and intelligent retrieval.
+version: "1.0.0-beta.2"
+openclaw: ">= 2026.4.23"
+author: Zettelkasten Team
+license: MIT
+---
+
+# Zettelkasten Brain Skill
 
 ## 简介
 

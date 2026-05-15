@@ -253,6 +253,50 @@ function migrateNotesTableForArchive(db: DatabaseSync): void {
  * 创建审核、反馈、提示词版本和样本策划相关表
  */
 function ensurePhase5Schema(db: DatabaseSync): void {
+  // [迁移] Phase 5 旧 Schema 检测与清理
+  // 由于此前为"死代码"状态，无实际数据，安全删除重建
+  const oldTables = [
+    { table: 'zettel_prompt_versions', oldColumn: 'name' },
+    { table: 'zettel_sample_curations', oldColumn: 'quality_score' },
+    { table: 'zettel_system_tunings', oldColumn: '' },
+  ];
+  
+  for (const { table, oldColumn } of oldTables) {
+    const exists = db
+      .prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?`)
+      .get(table) !== undefined;
+    if (!exists) continue;
+    
+    let isOld = false;
+    try {
+      if (oldColumn) {
+        const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+        isOld = cols.some(c => c.name === oldColumn);
+      } else {
+        // 旧版 system_tunings 有 parameter_name UNIQUE 约束
+        const tblSql = db
+          .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?`)
+          .get(table) as { sql: string } | undefined;
+        isOld = tblSql?.sql?.includes('parameter_name TEXT NOT NULL UNIQUE') ?? false;
+      }
+    } catch { isOld = false; }
+    
+    if (isOld) {
+      db.exec(`DROP TABLE IF EXISTS ${table};`);
+    }
+  }
+  
+  // 清理旧索引
+  const staleIndexes = [
+    'idx_zettel_prompts_name',
+    'idx_zettel_prompts_purpose',
+    'idx_zettel_samples_featured',
+    'idx_zettel_samples_score',
+  ];
+  for (const idx of staleIndexes) {
+    db.exec(`DROP INDEX IF EXISTS ${idx};`);
+  }
+  
   // 审核记录表
   db.exec(`
     CREATE TABLE IF NOT EXISTS zettel_reviews (
@@ -291,53 +335,71 @@ function ensurePhase5Schema(db: DatabaseSync): void {
     );
   `);
   
-  // 提示词版本表
+  // 提示词版本表（与 prompt-version-repository.ts 对齐）
   db.exec(`
     CREATE TABLE IF NOT EXISTS zettel_prompt_versions (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      version TEXT NOT NULL,
+      prompt_type TEXT NOT NULL,
+      version INTEGER NOT NULL,
       content TEXT NOT NULL,
-      purpose TEXT NOT NULL CHECK (purpose IN ('ceqrc', 'distill', 'dedupe', 'confidence', 'link_suggestion', 'custom')),
+      description TEXT,
       is_active BOOLEAN NOT NULL DEFAULT FALSE,
-      effectiveness_score REAL DEFAULT 0 CHECK (effectiveness_score >= 0 AND effectiveness_score <= 1),
       usage_count INTEGER NOT NULL DEFAULT 0,
-      success_count INTEGER NOT NULL DEFAULT 0,
-      metadata TEXT, -- JSON 存储额外信息
+      average_score REAL,
+      metadata TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      UNIQUE(name, version)
+      activated_at TEXT,
+      UNIQUE(prompt_type, version)
     );
   `);
   
-  // 样本策划表
+  // 样本策划表（与 sample-curation-repository.ts 对齐）
   db.exec(`
     CREATE TABLE IF NOT EXISTS zettel_sample_curations (
       id TEXT PRIMARY KEY,
       note_id TEXT NOT NULL,
-      quality_score REAL NOT NULL CHECK (quality_score >= 0 AND quality_score <= 1),
-      feedback_count INTEGER NOT NULL DEFAULT 0,
-      positive_feedback_count INTEGER NOT NULL DEFAULT 0,
-      is_featured BOOLEAN NOT NULL DEFAULT FALSE,
-      curation_tags TEXT, -- JSON 数组
-      curation_reason TEXT,
-      curated_by TEXT,
-      curated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      quality_relevance REAL,
+      quality_clarity REAL,
+      quality_atomicity REAL,
+      quality_connectivity REAL,
+      quality_overall REAL,
+      curation_status TEXT NOT NULL DEFAULT 'pending',
+      curator_id TEXT,
+      curation_notes TEXT,
+      export_batch_id TEXT,
+      metadata TEXT,
+      curated_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (note_id) REFERENCES zettel_notes(id) ON DELETE CASCADE
     );
   `);
   
-  // 系统调优参数表
+  // 导出批次表（sample-curation-repository.ts 使用）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS zettel_export_batches (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      description TEXT,
+      sample_count INTEGER NOT NULL DEFAULT 0,
+      format TEXT,
+      file_path TEXT,
+      exported_by TEXT,
+      exported_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+  
+  // 系统调优参数表（与 system-tuning-repository.ts 对齐；parameter_name 不加 UNIQUE，支持历史记录）
   db.exec(`
     CREATE TABLE IF NOT EXISTS zettel_system_tunings (
       id TEXT PRIMARY KEY,
-      parameter_name TEXT NOT NULL UNIQUE,
+      parameter_name TEXT NOT NULL,
       parameter_value TEXT NOT NULL,
       previous_value TEXT,
       change_reason TEXT,
       feedback_id TEXT,
       auto_tuned BOOLEAN NOT NULL DEFAULT FALSE,
       tuning_score REAL CHECK (tuning_score >= 0 AND tuning_score <= 1),
-      metadata TEXT, -- JSON 存储额外信息
+      metadata TEXT,
       applied_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (feedback_id) REFERENCES zettel_feedback(id) ON DELETE SET NULL
     );
@@ -370,13 +432,12 @@ function ensurePhase5Schema(db: DatabaseSync): void {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_feedback_processed ON zettel_feedback(processed);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_feedback_created ON zettel_feedback(created_at);`);
   
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_prompts_name ON zettel_prompt_versions(name);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_prompts_type ON zettel_prompt_versions(prompt_type);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_prompts_active ON zettel_prompt_versions(is_active);`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_prompts_purpose ON zettel_prompt_versions(purpose);`);
   
   db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_samples_note ON zettel_sample_curations(note_id);`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_samples_featured ON zettel_sample_curations(is_featured);`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_samples_score ON zettel_sample_curations(quality_score);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_samples_status ON zettel_sample_curations(curation_status);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_samples_overall ON zettel_sample_curations(quality_overall);`);
   
   db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_tunings_name ON zettel_system_tunings(parameter_name);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_zettel_tunings_auto ON zettel_system_tunings(auto_tuned);`);

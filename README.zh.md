@@ -8,9 +8,9 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-[![Version](https://img.shields.io/badge/version-v1.0.0--beta.4-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.0--beta.5-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24-green.svg)](https://github.com/openclaw)
-[![MCP Server](https://img.shields.io/badge/MCP-18%20Tools-orange.svg)](src/mcp/server.ts)
+[![MCP Server](https://img.shields.io/badge/MCP-28%20Tools-orange.svg)](src/mcp/server.ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.14.0-blue.svg)](package.json)
 
@@ -20,12 +20,12 @@
 
 | 组件 | 版本 | 状态 |
 |------|------|------|
-| 插件 | `v1.0.0-beta.3` | 活跃开发中 |
-| Skill | `v1.0.0-beta.2` | 活跃开发中 |
+| 插件 | `v1.0.0-beta.5` | 活跃开发中 |
+| Skill | `v1.0.0-beta.3` | 活跃开发中 |
 | OpenClaw | `2026.4.24` | 在 2026.4.24 上开发测试；兼容 >= 2026.4.23 |
 | Node.js | `>= 22.14.0` | 必需（`node:sqlite`） |
 
-**最新发布**: [v1.0.0-beta.4](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.4) — 测试体系完善 + 输入校验 + 性能基准测试
+**最新发布**: [v1.0.0-beta.5](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.5) — Phase 5 进化系统 + 并发安全 + 文档体系重建
 
 ---
 
@@ -176,6 +176,11 @@ console.log(results);
 | `openclaw zk search <query>` | 搜索笔记 |
 | `openclaw zk show <id>` | 查看笔记详情 |
 | `openclaw zk link <from> <to>` | 创建笔记链接 |
+| `openclaw zk review-stats` | 查看审核统计 |
+| `openclaw zk review-pending` | 列出待审核笔记 |
+| `openclaw zk feedback-stats` | 查看反馈统计 |
+| `openclaw zk prompt-stats` | 查看提示词进化统计 |
+| `openclaw zk curation-stats` | 查看样本策展统计 |
 
 ---
 
@@ -193,6 +198,16 @@ console.log(results);
 | `zk_run_ceqrc` | 写 | 运行认知流水线 |
 | `zk_distill_memory` | 写 | 蒸馏会话记忆 |
 | `zk_review_note` | 写 | 审核笔记 |
+| `zk_get_review_panel` | 读 | 获取待审核面板 |
+| `zk_submit_review` | 写 | 提交审核 |
+| `zk_get_review_stats` | 读 | 获取审核统计 |
+| `zk_submit_feedback` | 写 | 提交用户反馈 |
+| `zk_get_feedback_stats` | 读 | 获取反馈统计 |
+| `zk_analyze_feedback_trends` | 读 | 分析反馈趋势 |
+| `zk_get_active_prompt` | 读 | 获取活跃提示词版本 |
+| `zk_get_prompt_stats` | 读 | 获取提示词进化统计 |
+| `zk_get_curation_stats` | 读 | 获取策展统计 |
+| `zk_export_samples` | 写 | 导出策展样本 |
 
 ---
 

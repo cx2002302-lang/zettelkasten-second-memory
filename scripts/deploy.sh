@@ -101,7 +101,7 @@ try:
     if 'tools' in cfg and 'alsoAllow' in cfg.get('tools', {}):
         original = cfg['tools']['alsoAllow']
         # 只保留 zk_ 前缀的工具名，移除 Skill ID（如 zettelkasten-brain, open-upsp 等）
-        cleaned = [x for x in original if x.startswith('zk_')]
+        cleaned = [x for x in original if x.startswith('zk_') or x == 'zettelkasten']
         removed = [x for x in original if not x.startswith('zk_')]
         if removed:
             cfg['tools']['alsoAllow'] = cleaned

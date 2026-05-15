@@ -16,6 +16,10 @@ import { GlowCalculator } from "../engine/glow-calculator.js";
 import { PathFinder } from "../engine/path-finder.js";
 import { ArchiveService } from "../service/archive-service.js";
 import { KnowledgeHeatmapService } from "../service/heatmap-service.js";
+import { ReviewService } from "../service/review-service.js";
+import { FeedbackService } from "../service/feedback-service.js";
+import { PromptEvolutionService } from "../service/prompt-evolution-service.js";
+import { SampleCurationService } from "../service/sample-curation-service.js";
 import { ensureZettelkastenSchema, getDatabaseStats } from "../storage/db-schema.js";
 
 // Safe parsers for Commander options (handler signature is (value, previous))
@@ -86,6 +90,13 @@ export function resolveZettelkastenConfig(
           "zk_get_archive_log",
           "zk_knowledge_heatmap",
           "zk_network_graph",
+          "zk_get_review_panel",
+          "zk_get_review_stats",
+          "zk_get_feedback_stats",
+          "zk_analyze_feedback_trends",
+          "zk_get_active_prompt",
+          "zk_get_prompt_stats",
+          "zk_get_curation_stats",
         ],
       },
       knowledge: {
@@ -107,6 +118,16 @@ export function resolveZettelkastenConfig(
           "zk_review_note",
           "zk_archive_note",
           "zk_unarchive_note",
+          "zk_get_review_panel",
+          "zk_get_review_stats",
+          "zk_submit_review",
+          "zk_submit_feedback",
+          "zk_get_feedback_stats",
+          "zk_analyze_feedback_trends",
+          "zk_get_active_prompt",
+          "zk_get_prompt_stats",
+          "zk_get_curation_stats",
+          "zk_export_samples",
         ],
       },
     },
@@ -159,12 +180,12 @@ function optionalStringEnum<const T extends readonly string[]>(
 const ZkCreateNoteSchema = Type.Object(
   {
     title: Type.String({ description: "Note title (required)" }),
-    content: Type.String({ description: "Markdown content of the note (required)" }),
+    content: Type.String({ description: "Markdown content" }),
     tags: Type.Optional(Type.Array(Type.String(), {
       description: "Tags for categorization",
     })),
     confidence: Type.Optional(Type.Number({
-      description: "Confidence score 0-1 for routing (zettels >= 0.7, references >= 0.4, otherwise inbox)",
+      description: "Confidence 0-1, routes to zettels(≥0.7)/references(≥0.4)/inbox",
       minimum: 0,
       maximum: 1,
     })),
@@ -229,7 +250,7 @@ const ZkUpdateNoteSchema = Type.Object(
 const ZkRunCeqrcSchema = Type.Object(
   {
     note_id: Type.String({ description: "Source note ID for CEQRC workflow" }),
-    content: Type.String({ description: "Content to process through CEQRC pipeline" }),
+    content: Type.String({ description: "CEQRC content" }),
   },
   { additionalProperties: false },
 );
@@ -237,7 +258,7 @@ const ZkRunCeqrcSchema = Type.Object(
 const ZkDistillMemorySchema = Type.Object(
   {
     memory_file_path: Type.Optional(Type.String({
-      description: "Path to memory log file. If omitted, distills yesterday's memory.",
+      description: "Memory log path, omit for yesterday",
     })),
   },
   { additionalProperties: false },
@@ -286,7 +307,7 @@ const ZkGlowRankingSchema = Type.Object(
 const ZkFindZombiesSchema = Type.Object(
   {
     limit: Type.Optional(Type.Number({
-      description: "Maximum number of zombie notes to return (default 20)",
+      description: "Max results (default 20)",
       minimum: 1,
       maximum: 100,
     })),
@@ -670,7 +691,7 @@ function createZkUnarchiveNoteTool(noteService: NoteService) {
 const ZkGetArchiveLogSchema = Type.Object(
   {
     note_id: Type.Optional(Type.String({ description: "Filter by note ID" })),
-    action: Type.Optional(Type.String({ description: "Filter by action type", enum: ["archive", "unarchive", "auto_archive"] })),
+    action: Type.Optional(Type.String({ description: "Action", enum: ["archive", "unarchive", "auto_archive"] })),
     limit: Type.Optional(Type.Number({ description: "Max results (default 50)", minimum: 1, maximum: 200 })),
   },
   { additionalProperties: false },
@@ -696,7 +717,7 @@ function createZkGetArchiveLogTool(archiveService: ArchiveService) {
 
 const ZkKnowledgeHeatmapSchema = Type.Object(
   {
-    days: Type.Optional(Type.Number({ description: "统计天数", minimum: 1, maximum: 365 })),
+    days: Type.Optional(Type.Number({ description: "Days", minimum: 1, maximum: 365 })),
   },
   { additionalProperties: false },
 );
@@ -720,7 +741,7 @@ const ZkNetworkGraphSchema = Type.Object(
   {
     limit: Type.Optional(Type.Number({ description: "Max nodes", minimum: 1, maximum: 500 })),
     folder_filter: Type.Optional(Type.Array(Type.String(), { description: "Filter by folders" })),
-    glow_min: Type.Optional(Type.Number({ description: "Minimum glow score", minimum: 0, maximum: 1 })),
+    glow_min: Type.Optional(Type.Number({ description: "Min glow", minimum: 0, maximum: 1 })),
   },
   { additionalProperties: false },
 );
@@ -741,6 +762,233 @@ function createZkNetworkGraphTool(heatmapService: KnowledgeHeatmapService) {
 
       const graph = heatmapService.generateNetworkGraph({ limit, folderFilter, glowMin });
       return jsonResult(graph);
+    },
+  };
+}
+
+// ========== Phase 5 Tool Schemas ==========
+
+const ZkGetReviewPanelSchema = Type.Object({}, { additionalProperties: false });
+
+const ZkSubmitReviewSchema = Type.Object(
+  {
+    target_type: Type.String({ description: "Target type", enum: ["note", "link", "tag", "system"] }),
+    target_id: Type.String({ description: "Target ID" }),
+    action: Type.String({ description: "Action", enum: ["approve", "reject", "modify", "flag"] }),
+    new_confidence: Type.Optional(Type.Number({ description: "New confidence 0-1", minimum: 0, maximum: 1 })),
+    new_folder: Type.Optional(Type.String({ description: "Folder", enum: ["inbox", "references", "zettels"] })),
+    comment: Type.Optional(Type.String({ description: "Review comment" })),
+  },
+  { additionalProperties: false },
+);
+
+const ZkGetReviewStatsSchema = Type.Object({}, { additionalProperties: false });
+
+const ZkSubmitFeedbackSchema = Type.Object(
+  {
+    target_type: Type.String({ description: "Target type", enum: ["note", "link", "tag", "system"] }),
+    target_id: Type.String({ description: "Target ID" }),
+    feedback_type: Type.String({ description: "Type", enum: ["thumbs_up", "thumbs_down", "comment", "correction", "suggestion"] }),
+    content: Type.Optional(Type.String({ description: "Feedback content" })),
+    rating: Type.Optional(Type.Number({ description: "Rating 1-5", minimum: 1, maximum: 5 })),
+  },
+  { additionalProperties: false },
+);
+
+const ZkGetFeedbackStatsSchema = Type.Object({}, { additionalProperties: false });
+
+const ZkAnalyzeFeedbackTrendsSchema = Type.Object(
+  {
+    days: Type.Optional(Type.Number({ description: "Days", minimum: 1, maximum: 365 })),
+  },
+  { additionalProperties: false },
+);
+
+const ZkGetActivePromptSchema = Type.Object(
+  {
+    prompt_type: Type.String({ description: "Type", enum: ["capture", "explain", "question", "refine", "connect", "distill", "dedupe"] }),
+  },
+  { additionalProperties: false },
+);
+
+const ZkGetPromptStatsSchema = Type.Object({}, { additionalProperties: false });
+
+const ZkGetCurationStatsSchema = Type.Object({}, { additionalProperties: false });
+
+const ZkExportSamplesSchema = Type.Object(
+  {
+    format: Type.Optional(Type.String({ description: "Format", enum: ["jsonl", "json", "csv"] })),
+    min_score: Type.Optional(Type.Number({ description: "Min score 0-1", minimum: 0, maximum: 1 })),
+  },
+  { additionalProperties: false },
+);
+
+// ========== Phase 5 Tool Builders ==========
+
+function createZkGetReviewPanelTool(reviewService: ReviewService) {
+  return {
+    name: "zk_get_review_panel",
+    label: "ZK Get Review Panel",
+    description: "Get review panel with pending items and stats",
+    parameters: ZkGetReviewPanelSchema,
+    execute: async () => {
+      const result = reviewService.getReviewPanelState();
+      return jsonResult(result);
+    },
+  };
+}
+
+function createZkSubmitReviewTool(reviewService: ReviewService) {
+  return {
+    name: "zk_submit_review",
+    label: "ZK Submit Review",
+    description: "Submit a review decision",
+    parameters: ZkSubmitReviewSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const targetType = readStringParam(rawParams, "target_type", { required: true }) as "note" | "link" | "tag" | "system";
+      const targetId = readStringParam(rawParams, "target_id", { required: true });
+      const action = readStringParam(rawParams, "action", { required: true }) as "approve" | "reject" | "modify" | "flag";
+      const newConfidence = readNumberParam(rawParams, "new_confidence");
+      const newFolder = readStringParam(rawParams, "new_folder") as "inbox" | "references" | "zettels" | undefined;
+      const comment = readStringParam(rawParams, "comment");
+
+      const result = reviewService.createReview({
+        targetType,
+        targetId,
+        action,
+        newConfidence: newConfidence ?? undefined,
+        newFolder,
+        comment: comment ?? undefined,
+      });
+      return jsonResult(result);
+    },
+  };
+}
+
+function createZkGetReviewStatsTool(reviewService: ReviewService) {
+  return {
+    name: "zk_get_review_stats",
+    label: "ZK Get Review Stats",
+    description: "Get review statistics",
+    parameters: ZkGetReviewStatsSchema,
+    execute: async () => {
+      const result = reviewService.getStats();
+      return jsonResult(result);
+    },
+  };
+}
+
+function createZkSubmitFeedbackTool(feedbackService: FeedbackService) {
+  return {
+    name: "zk_submit_feedback",
+    label: "ZK Submit Feedback",
+    description: "Submit feedback",
+    parameters: ZkSubmitFeedbackSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const targetType = readStringParam(rawParams, "target_type", { required: true }) as "note" | "link" | "tag" | "system";
+      const targetId = readStringParam(rawParams, "target_id", { required: true });
+      const feedbackType = readStringParam(rawParams, "feedback_type", { required: true }) as "thumbs_up" | "thumbs_down" | "comment" | "correction" | "suggestion";
+      const content = readStringParam(rawParams, "content");
+      const rating = readNumberParam(rawParams, "rating", { integer: true });
+
+      const result = feedbackService.submitFeedback({
+        targetType,
+        targetId,
+        feedbackType,
+        source: "user",
+        content: content ?? undefined,
+        rating: rating ?? undefined,
+      });
+      return jsonResult(result);
+    },
+  };
+}
+
+function createZkGetFeedbackStatsTool(feedbackService: FeedbackService) {
+  return {
+    name: "zk_get_feedback_stats",
+    label: "ZK Get Feedback Stats",
+    description: "Get feedback statistics",
+    parameters: ZkGetFeedbackStatsSchema,
+    execute: async () => {
+      const result = feedbackService.getStats();
+      return jsonResult(result);
+    },
+  };
+}
+
+function createZkAnalyzeFeedbackTrendsTool(feedbackService: FeedbackService) {
+  return {
+    name: "zk_analyze_feedback_trends",
+    label: "ZK Analyze Feedback Trends",
+    description: "Analyze feedback trends",
+    parameters: ZkAnalyzeFeedbackTrendsSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const days = readNumberParam(rawParams, "days", { integer: true }) ?? 7;
+      const end = new Date();
+      const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
+      const result = feedbackService.analyzeTrends({
+        start: start.toISOString(),
+        end: end.toISOString(),
+      });
+      return jsonResult(result);
+    },
+  };
+}
+
+function createZkGetActivePromptTool(promptService: PromptEvolutionService) {
+  return {
+    name: "zk_get_active_prompt",
+    label: "ZK Get Active Prompt",
+    description: "Get active prompt by type",
+    parameters: ZkGetActivePromptSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const promptType = readStringParam(rawParams, "prompt_type", { required: true }) as "capture" | "explain" | "question" | "refine" | "connect" | "distill" | "dedupe";
+      const result = promptService.getActivePrompt(promptType);
+      return jsonResult(result);
+    },
+  };
+}
+
+function createZkGetPromptStatsTool(promptService: PromptEvolutionService) {
+  return {
+    name: "zk_get_prompt_stats",
+    label: "ZK Get Prompt Stats",
+    description: "Get prompt statistics",
+    parameters: ZkGetPromptStatsSchema,
+    execute: async () => {
+      const result = promptService.getEffectivenessStats();
+      return jsonResult(result);
+    },
+  };
+}
+
+function createZkGetCurationStatsTool(curationService: SampleCurationService) {
+  return {
+    name: "zk_get_curation_stats",
+    label: "ZK Get Curation Stats",
+    description: "Get curation statistics",
+    parameters: ZkGetCurationStatsSchema,
+    execute: async () => {
+      const result = curationService.getStats();
+      return jsonResult(result);
+    },
+  };
+}
+
+function createZkExportSamplesTool(curationService: SampleCurationService) {
+  return {
+    name: "zk_export_samples",
+    label: "ZK Export Samples",
+    description: "Export curated samples",
+    parameters: ZkExportSamplesSchema,
+    execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+      const format = (readStringParam(rawParams, "format") ?? "jsonl") as "jsonl" | "json" | "csv";
+      const minScore = readNumberParam(rawParams, "min_score") ?? 0.8;
+      const samples = curationService.getHighQualitySamples(minScore, 1000);
+      const sampleIds = samples.map((s) => s.id);
+      const result = curationService.exportSamples(sampleIds, format);
+      return jsonResult(result);
     },
   };
 }
@@ -775,6 +1023,10 @@ export default definePluginEntry({
     const pathFinder = new PathFinder(db);
     const archiveService = new ArchiveService(db);
     const heatmapService = new KnowledgeHeatmapService(db);
+    const reviewService = new ReviewService(db);
+    const feedbackService = new FeedbackService(db);
+    const promptEvolutionService = new PromptEvolutionService(db);
+    const sampleCurationService = new SampleCurationService(db);
 
     const nullLLM = nullLLMProvider();
     const ceqrcEngine = new CEQRCEngine(nullLLM);
@@ -797,6 +1049,16 @@ export default definePluginEntry({
     api.registerTool(createZkGetArchiveLogTool(archiveService), { name: "zk_get_archive_log" });
     api.registerTool(createZkKnowledgeHeatmapTool(heatmapService), { name: "zk_knowledge_heatmap" });
     api.registerTool(createZkNetworkGraphTool(heatmapService), { name: "zk_network_graph" });
+    api.registerTool(createZkGetReviewPanelTool(reviewService), { name: "zk_get_review_panel" });
+    api.registerTool(createZkSubmitReviewTool(reviewService), { name: "zk_submit_review" });
+    api.registerTool(createZkGetReviewStatsTool(reviewService), { name: "zk_get_review_stats" });
+    api.registerTool(createZkSubmitFeedbackTool(feedbackService), { name: "zk_submit_feedback" });
+    api.registerTool(createZkGetFeedbackStatsTool(feedbackService), { name: "zk_get_feedback_stats" });
+    api.registerTool(createZkAnalyzeFeedbackTrendsTool(feedbackService), { name: "zk_analyze_feedback_trends" });
+    api.registerTool(createZkGetActivePromptTool(promptEvolutionService), { name: "zk_get_active_prompt" });
+    api.registerTool(createZkGetPromptStatsTool(promptEvolutionService), { name: "zk_get_prompt_stats" });
+    api.registerTool(createZkGetCurationStatsTool(sampleCurationService), { name: "zk_get_curation_stats" });
+    api.registerTool(createZkExportSamplesTool(sampleCurationService), { name: "zk_export_samples" });
 
     api.registerCli(
       ({ program }) => {
@@ -819,7 +1081,7 @@ export default definePluginEntry({
               "zettel_meta", "zettel_notes", "zettel_tags",
               "zettel_note_tags", "zettel_links",
               "zettel_reviews", "zettel_feedback", "zettel_prompt_versions",
-              "zettel_sample_curations", "zettel_system_tunings", "zettel_feedback_stats",
+              "zettel_sample_curations", "zettel_system_tunings", "zettel_feedback_stats", "zettel_export_batches",
             ];
             const missing: string[] = [];
             for (const table of requiredTables) {
@@ -1014,7 +1276,7 @@ export default definePluginEntry({
             const tables = [
               "zettel_meta", "zettel_notes", "zettel_tags", "zettel_note_tags",
               "zettel_links", "zettel_reviews", "zettel_feedback", "zettel_prompt_versions",
-              "zettel_sample_curations", "zettel_system_tunings", "zettel_feedback_stats",
+              "zettel_sample_curations", "zettel_system_tunings", "zettel_feedback_stats", "zettel_export_batches",
             ];
             for (const t of tables) {
               const row = db.prepare(
@@ -1256,6 +1518,109 @@ export default definePluginEntry({
               api.logger.info(`[zettelkasten] Knowledge Graph: ${graph.meta.nodeCount} nodes, ${graph.meta.edgeCount} edges`);
               api.logger.info("[zettelkasten] ════════════════════════════════════════");
               api.logger.info(output);
+            }
+          });
+
+        zk
+          .command("review-stats")
+          .description("Show review statistics")
+          .action(async () => {
+            const stats = reviewService.getStats();
+            api.logger.info("[zettelkasten] ════════════════════════════════════════");
+            api.logger.info("[zettelkasten]  Review Statistics");
+            api.logger.info("[zettelkasten] ════════════════════════════════════════");
+            api.logger.info(`[zettelkasten] Total reviews: ${stats.totalReviews}`);
+            api.logger.info(`[zettelkasten] Pending: ${stats.pendingCount}`);
+            api.logger.info(`[zettelkasten] Approved: ${stats.approvedCount}`);
+            api.logger.info(`[zettelkasten] Rejected: ${stats.rejectedCount}`);
+            api.logger.info(`[zettelkasten] Modified: ${stats.modifiedCount}`);
+            api.logger.info(`[zettelkasten] Flagged: ${stats.flaggedCount}`);
+            api.logger.info("[zettelkasten] By target type:");
+            for (const [type, count] of Object.entries(stats.byTargetType)) {
+              api.logger.info(`  ${type}: ${count}`);
+            }
+          });
+
+        zk
+          .command("review-pending")
+          .description("List pending review items")
+          .option("--limit <n>", "Max results", safeParseInt, 20)
+          .action(async (opts) => {
+            const items = reviewService.getPendingItems(opts.limit);
+            if (items.length === 0) {
+              api.logger.info("[zettelkasten] No pending review items");
+            } else {
+              api.logger.info(`[zettelkasten] Pending review items (${items.length}):`);
+              for (const item of items) {
+                api.logger.info(`  [${item.id}] ${item.targetType}:${item.targetId} | ${item.action} | ${item.createdAt}`);
+              }
+            }
+          });
+
+        zk
+          .command("feedback-stats")
+          .description("Show feedback statistics")
+          .action(async () => {
+            const stats = feedbackService.getStats();
+            api.logger.info("[zettelkasten] ════════════════════════════════════════");
+            api.logger.info("[zettelkasten]  Feedback Statistics");
+            api.logger.info("[zettelkasten] ════════════════════════════════════════");
+            api.logger.info(`[zettelkasten] Total feedback: ${stats.totalFeedback}`);
+            api.logger.info(`[zettelkasten] Unprocessed: ${stats.unprocessedCount}`);
+            api.logger.info("[zettelkasten] By type:");
+            api.logger.info(`  thumbs_up: ${stats.thumbsUpCount}`);
+            api.logger.info(`  thumbs_down: ${stats.thumbsDownCount}`);
+            api.logger.info(`  comment: ${stats.commentCount}`);
+            api.logger.info(`  correction: ${stats.correctionCount}`);
+            api.logger.info(`  suggestion: ${stats.suggestionCount}`);
+            api.logger.info("[zettelkasten] By target type:");
+            for (const [type, count] of Object.entries(stats.byTargetType)) {
+              api.logger.info(`  ${type}: ${count}`);
+            }
+          });
+
+        zk
+          .command("prompt-stats")
+          .description("Show prompt effectiveness statistics")
+          .action(async () => {
+            const effectiveness = promptEvolutionService.getEffectivenessStats();
+            api.logger.info("[zettelkasten] ════════════════════════════════════════");
+            api.logger.info("[zettelkasten]  Prompt Statistics");
+            api.logger.info("[zettelkasten] ════════════════════════════════════════");
+            api.logger.info(`[zettelkasten] Total versions with stats: ${effectiveness.length}`);
+            if (effectiveness.length > 0) {
+              const avgScore = effectiveness.reduce((sum, p) => sum + (p.averageScore ?? 0), 0) / effectiveness.length;
+              api.logger.info(`[zettelkasten] Average score: ${avgScore.toFixed(3)}`);
+              const byType: Record<string, { count: number; avgScore: number }> = {};
+              for (const p of effectiveness) {
+                if (!byType[p.promptType]) {
+                  byType[p.promptType] = { count: 0, avgScore: 0 };
+                }
+                byType[p.promptType].count++;
+                byType[p.promptType].avgScore += p.averageScore ?? 0;
+              }
+              api.logger.info("[zettelkasten] By prompt type:");
+              for (const [type, data] of Object.entries(byType)) {
+                api.logger.info(`  ${type}: count=${data.count} avg=${(data.avgScore / data.count).toFixed(3)}`);
+              }
+            }
+          });
+
+        zk
+          .command("curation-stats")
+          .description("Show sample curation statistics")
+          .action(async () => {
+            const stats = sampleCurationService.getStats();
+            api.logger.info("[zettelkasten] ════════════════════════════════════════");
+            api.logger.info("[zettelkasten]  Curation Statistics");
+            api.logger.info("[zettelkasten] ════════════════════════════════════════");
+            api.logger.info(`[zettelkasten] Total curated: ${stats.total}`);
+            api.logger.info(`[zettelkasten] Pending: ${stats.pending}`);
+            api.logger.info(`[zettelkasten] Approved: ${stats.approved}`);
+            api.logger.info(`[zettelkasten] Rejected: ${stats.rejected}`);
+            api.logger.info(`[zettelkasten] Exported: ${stats.exported}`);
+            if (stats.averageQuality !== undefined) {
+              api.logger.info(`[zettelkasten] Average quality: ${stats.averageQuality.toFixed(3)}`);
             }
           });
       },

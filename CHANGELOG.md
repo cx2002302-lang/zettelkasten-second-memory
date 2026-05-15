@@ -1,5 +1,48 @@
 # Changelog
 
+## v1.0.0-beta.5 — Phase 5 Evolution System + Concurrency Safety + Documentation Overhaul
+
+**Release Date**: 2026-05-16
+
+### ✨ New Features
+
+- **Phase 5 Evolution System** — 10 new MCP tools + 5 new CLI commands
+  - Review system: `zk_get_review_panel`, `zk_submit_review`, `zk_get_review_stats`
+  - Feedback system: `zk_submit_feedback`, `zk_get_feedback_stats`, `zk_analyze_feedback_trends`
+  - Prompt evolution: `zk_get_active_prompt`, `zk_get_prompt_stats`
+  - Sample curation: `zk_get_curation_stats`, `zk_export_samples`
+  - CLI: `zk review-stats`, `zk review-pending`, `zk feedback-stats`, `zk prompt-stats`, `zk curation-stats`
+
+- **Database Schema** — 4 new tables for evolution tracking
+  - `zettel_prompt_versions` — Prompt version history with quality scoring
+  - `zettel_sample_curations` — CEQRC sample quality assessment (6 dimensions)
+  - `zettel_system_tunings` — System parameter tuning history
+  - `zettel_export_batches` — Sample export batch tracking
+
+- **Documentation Overhaul** — Complete documentation system rebuilt
+  - Full `SKILL.md` (6551 bytes) + `PROMPT.md` (7737 bytes) with use cases and examples
+  - `details/` folder with compact versions for progressive disclosure
+  - `docs/` folder with 9 feature documents (README + 01-09)
+
+- **Concurrency Safety** — Verified under rapid-fire parallel operations
+  - 20 notes + 20 feedback + 10 links (bidirectional = 18) + 20 reviews
+  - Zero duplicate IDs, zero orphaned records, zero data inconsistency
+
+### 🔧 Bug Fixes
+
+- **ZK-BUG-003**: `deploy.sh` alsoAllow cleanup incorrectly removed `"zettelkasten"` plugin ID, causing MCP tools to become invisible to agents. Fixed by adding `or x == 'zettelkasten'` to the filter condition.
+- **Schema Alignment**: 3 Phase 5 tables (`zettel_prompt_versions`, `zettel_sample_curations`, `zettel_system_tunings`) had DDL fields mismatched with Repository code. Fixed DDL to match runtime expectations.
+- **Old Schema Migration**: Auto-detect and recreate tables with stale column definitions on `zk init`.
+
+### 🧪 Test Coverage
+
+- **689 tests passing**, 26 test files, 0 failures
+- Agent E2E: **7/7 rounds passed** (boundary cases, composition, Phase 5, error recovery, intelligence, Chinese search, concurrency)
+- Production deployment verified: 143 notes, 70 links, 543 feedback, 292 reviews
+- All 28 MCP tools callable via OpenClaw Agent
+
+---
+
 ## v1.0.0-beta.4 — Test Suite + Input Validation + Performance Benchmark
 
 **Release Date**: 2026-05-12

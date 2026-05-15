@@ -8,9 +8,9 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-[![Version](https://img.shields.io/badge/version-v1.0.0--beta.4-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.0--beta.5-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24-green.svg)](https://github.com/openclaw)
-[![MCP Server](https://img.shields.io/badge/MCP-18%20Tools-orange.svg)](src/mcp/server.ts)
+[![MCP Server](https://img.shields.io/badge/MCP-28%20Tools-orange.svg)](src/mcp/server.ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.14.0-blue.svg)](package.json)
 
@@ -20,12 +20,12 @@
 
 | Component | Version | Status |
 |-----------|---------|--------|
-| Plugin | `v1.0.0-beta.3` | Active development |
-| Skill | `v1.0.0-beta.2` | Active development |
+| Plugin | `v1.0.0-beta.5` | Active development |
+| Skill | `v1.0.0-beta.3` | Active development |
 | OpenClaw | `2026.4.24` | Developed & tested on 2026.4.24; compatible with >= 2026.4.23 |
 | Node.js | `>= 22.14.0` | Required (for `node:sqlite`) |
 
-**Latest Release**: [v1.0.0-beta.4](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.4) — Test Suite + Input Validation + Performance Benchmark
+**Latest Release**: [v1.0.0-beta.5](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.5) — Phase 5 Evolution System + Concurrency Safety + Documentation Overhaul
 
 ---
 
@@ -184,6 +184,11 @@ console.log(results);
 | `openclaw zk search <query>` | Search notes |
 | `openclaw zk show <id>` | View note details |
 | `openclaw zk link <from> <to>` | Create a note link |
+| `openclaw zk review-stats` | View review statistics |
+| `openclaw zk review-pending` | List pending reviews |
+| `openclaw zk feedback-stats` | View feedback statistics |
+| `openclaw zk prompt-stats` | View prompt evolution statistics |
+| `openclaw zk curation-stats` | View sample curation statistics |
 
 ---
 
@@ -201,6 +206,16 @@ console.log(results);
 | `zk_run_ceqrc` | Write | Run the cognitive pipeline |
 | `zk_distill_memory` | Write | Distill session memories |
 | `zk_review_note` | Write | Review a note |
+| `zk_get_review_panel` | Read | Get pending review panel |
+| `zk_submit_review` | Write | Submit a review |
+| `zk_get_review_stats` | Read | Get review statistics |
+| `zk_submit_feedback` | Write | Submit user feedback |
+| `zk_get_feedback_stats` | Read | Get feedback statistics |
+| `zk_analyze_feedback_trends` | Read | Analyze feedback trends |
+| `zk_get_active_prompt` | Read | Get active prompt version |
+| `zk_get_prompt_stats` | Read | Get prompt evolution stats |
+| `zk_get_curation_stats` | Read | Get curation statistics |
+| `zk_export_samples` | Write | Export curated samples |
 
 ---
 

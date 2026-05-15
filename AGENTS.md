@@ -3,8 +3,8 @@
 ## 系统版本信息（每次思考必须考虑）
 
 - **OpenClaw 版本**: 2026.4.24
-- **Zettelkasten 插件版本**: 2026.4.23-v1.0.0
-- **Skill 版本**: 1.0.0-beta.1
+- **Zettelkasten 插件版本**: 2026.4.23-v1.0.0-beta.5
+- **Skill 版本**: 1.0.0-beta.3
 - **Node 要求**: >= 22.14.0（`node:sqlite` 需要 Node 22+）
 - **OpenClaw 最低要求**: >= 2026.4.23
 

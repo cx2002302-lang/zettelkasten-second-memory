@@ -9,7 +9,7 @@
 
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, extname } from "node:path";
 import type {
   MemoryLogEntry,
   MemoryLogEntryType,
@@ -49,16 +49,32 @@ export class MemoryParser {
   }
 
   /**
-   * 解析 memory 日志文件
+   * 解析 memory 日志文件（支持 .json 和 .md 格式）
    * @param filePath 日志文件路径
    * @returns 解析后的对话条目列表
    */
   async parseMemoryLog(filePath: string): Promise<MemoryLogEntry[]> {
+    // 如果指定的是 .json 但文件不存在，尝试 .md
+    if (!existsSync(filePath) && filePath.endsWith(".json")) {
+      const mdPath = filePath.replace(/\.json$/, ".md");
+      if (existsSync(mdPath)) {
+        const content = await readFile(mdPath, "utf-8");
+        return this.parseMemoryMarkdownContent(content);
+      }
+    }
+
     if (!existsSync(filePath)) {
       throw new Error(`Memory log file not found: ${filePath}`);
     }
 
     const content = await readFile(filePath, "utf-8");
+    const ext = extname(filePath).toLowerCase();
+
+    // 根据文件扩展名选择解析器
+    if (ext === ".md") {
+      return this.parseMemoryMarkdownContent(content);
+    }
+
     return this.parseMemoryContent(content);
   }
 
@@ -250,10 +266,119 @@ export class MemoryParser {
    * 获取指定日期的 memory 日志文件路径
    * @param basePath 基础目录
    * @param date 日期字符串 (YYYY-MM-DD)
-   * @returns 文件路径
+   * @returns 文件路径（优先 .json，回退 .md）
    */
   getMemoryFilePath(basePath: string, date: string): string {
-    return join(basePath, "memory", `${date}.json`);
+    const jsonPath = join(basePath, "memory", `${date}.json`);
+    if (existsSync(jsonPath)) return jsonPath;
+    const mdPath = join(basePath, "memory", `${date}.md`);
+    if (existsSync(mdPath)) return mdPath;
+    return jsonPath; // 默认返回 .json，让调用方处理不存在的情况
+  }
+
+  /**
+   * 解析 Markdown 格式的 memory 日志
+   * 格式示例：
+   * # Memory Log 2026-05-13
+   * ## Entry 1
+   * **Type**: user
+   * **Time**: 2026-05-13T10:00:00Z
+   * **Content**: ...
+   *
+   * ## Entry 2
+   * ...
+   */
+  parseMemoryMarkdownContent(content: string): MemoryLogEntry[] {
+    const entries: MemoryLogEntry[] = [];
+    const sessionId = "md-" + generateZettelId();
+
+    // 按二级标题分割条目
+    const sections = content.split(/\n## /);
+
+    for (const section of sections) {
+      const lines = section.trim().split("\n");
+      if (lines.length === 0) continue;
+
+      // 第一个 section 可能是标题（不含 ##）
+      let title = lines[0].trim();
+      if (title.startsWith("# ")) {
+        // 这是文档主标题，跳过
+        continue;
+      }
+      // 去掉开头的 #
+      title = title.replace(/^#+\s*/, "").trim();
+
+      // 解析字段
+      let entryType: MemoryLogEntryType = "user";
+      let timestamp = new Date().toISOString();
+      let entryContent = "";
+      const metadata: Record<string, unknown> = {};
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith("**Type**:") || line.startsWith("Type:")) {
+          const t = line.split(":")[1]?.trim().toLowerCase() || "user";
+          if (["user", "assistant", "system", "tool"].includes(t)) {
+            entryType = t as MemoryLogEntryType;
+          }
+        } else if (line.startsWith("**Time**:") || line.startsWith("Time:")) {
+          const t = line.split(":")[1]?.trim();
+          if (t) timestamp = t;
+        } else if (line.startsWith("**Content**:") || line.startsWith("Content:")) {
+          entryContent = line.split(":")[1]?.trim() || "";
+          // 收集后续行直到下一个字段或空行
+          for (let j = i + 1; j < lines.length; j++) {
+            const nextLine = lines[j];
+            if (nextLine.trim().startsWith("**") || nextLine.trim().startsWith("## ")) break;
+            entryContent += "\n" + nextLine;
+          }
+        } else if (line.startsWith("**")) {
+          const match = line.match(/^\*\*(.+?)\*\*:\s*(.*)$/);
+          if (match) {
+            metadata[match[1].toLowerCase()] = match[2];
+          }
+        }
+      }
+
+      // 如果没有显式 Content 字段，将剩余文本作为内容
+      if (!entryContent && lines.length > 1) {
+        const bodyLines = lines.slice(1).filter((l) => !l.trim().startsWith("**"));
+        entryContent = bodyLines.join("\n").trim();
+      }
+
+      // 跳过空条目
+      if (!entryContent.trim() && title === "Memory Log") continue;
+
+      entries.push({
+        id: generateZettelId(),
+        type: entryType,
+        content: entryContent || title,
+        timestamp,
+        sessionId,
+        metadata,
+      });
+    }
+
+    // 如果按二级标题没解析出条目，尝试按段落分割
+    if (entries.length === 0 && content.length > 0) {
+      const paragraphs = content
+        .split(/\n\n+/)
+        .map((p) => p.trim())
+        .filter((p) => p.length > 20 && !p.startsWith("#"));
+
+      for (const para of paragraphs) {
+        entries.push({
+          id: generateZettelId(),
+          type: "user",
+          content: para,
+          timestamp: new Date().toISOString(),
+          sessionId,
+          metadata: {},
+        });
+      }
+    }
+
+    return entries;
   }
 
   /**

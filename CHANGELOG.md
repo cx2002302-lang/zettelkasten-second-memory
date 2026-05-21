@@ -1,5 +1,48 @@
 # Changelog
 
+## v1.0.0-beta.6 — Auto-Review + Distillation Quality Guard + Memory Format Fix
+
+**Release Date**: 2026-05-21
+
+### ✨ New Features
+
+- **Nightly Auto-Review** — Plugin cron now automatically reviews Inbox notes at 2:00 AM
+  - High-quality notes (confidence ≥ 0.7 + content length ≥ 200): auto-approved → `zettels`
+  - Low-quality notes (quality < 0.4): auto-flagged → stays in `inbox` with review record
+  - Medium-quality notes: kept in `inbox` for human review
+  - `ReviewService.autoReviewInbox()` processes up to 100 pending notes per run
+
+- **Distillation Quality Guard** — 6-layer content validation prevents placeholder notes from entering the database
+  - Empty title rejection
+  - Minimum 50-character content requirement
+  - Placeholder title detection (9 patterns: `Memory entry X`, `Untitled`, `Note X`, etc.)
+  - Metadata-only content detection
+  - Title-content identical check
+  - Meaningful word count validation (≥ 5 words)
+
+- **Markdown Memory Format Support** — `MemoryParser` now supports `.md` memory logs in addition to `.json`
+  - Auto-detects file extension and selects appropriate parser
+  - Falls back from `.json` to `.md` when JSON file is missing
+  - Parses Markdown sections (`## Entry`) with Type/Time/Content fields
+
+### 🔧 Bug Fixes
+
+- **Distillation Empty Content**: LLM-generated summaries with only metadata (e.g., `> 来源：Professional > 时间：... > 权重：X`) are now rejected at creation time instead of polluting the database
+- **Inbox Accumulation**: 120 unreviewed notes accumulated because `autoReview()` existed but was never called by the plugin. Fixed by adding auto-review step to nightly cron
+- **PR#1 Merged**: Accepted kriptoburak's placeholder URL fix (`YOUR_USERNAME` → `cx2002302-lang`) after TweetClaw promotional content was removed
+
+### 🧹 Data Cleanup
+
+- Cleaned 33 empty/placeholder notes (source=`distilled`, content only metadata) from production database
+- Post-cleanup state: 129 notes | 0 inbox backlog | 17/17 health checks passing
+
+### 🧪 Test Coverage
+
+- **689 tests passing**, 26 test files, 0 failures
+- Auto-review verified with 3-tier test: high-quality→approve, medium→flag/skip, low→flag
+
+---
+
 ## v1.0.0-beta.5 — Phase 5 Evolution System + Concurrency Safety + Documentation Overhaul
 
 **Release Date**: 2026-05-16

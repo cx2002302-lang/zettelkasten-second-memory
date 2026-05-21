@@ -1679,6 +1679,17 @@ export default definePluginEntry({
               } catch (err) {
                 api.logger.error(`[zettelkasten] Auto-archive failed: ${err instanceof Error ? err.message : String(err)}`);
               }
+
+              // 3. Auto-review inbox notes
+              api.logger.info("[zettelkasten] Running nightly auto-review...");
+              try {
+                const stats = reviewService.autoReviewInbox();
+                api.logger.info(
+                  `[zettelkasten] Auto-review complete: ${stats.approved} approved, ${stats.flagged} flagged, ${stats.skipped} pending (total: ${stats.total})`,
+                );
+              } catch (err) {
+                api.logger.error(`[zettelkasten] Auto-review failed: ${err instanceof Error ? err.message : String(err)}`);
+              }
             }
           }, intervalMs);
         },

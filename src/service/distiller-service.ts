@@ -238,7 +238,77 @@ export class DistillerService {
    * @param summary 摘要
    * @returns 创建的笔记
    */
+  /**
+   * 校验摘要内容质量，防止 LLM 返回占位符/空内容
+   */
+  private validateSummary(summary: DistillSummary): { valid: boolean; reason?: string } {
+    const title = summary.title?.trim() || "";
+    const content = summary.content?.trim() || "";
+
+    // 1. 标题不能为空
+    if (title.length === 0) {
+      return { valid: false, reason: "Empty title" };
+    }
+
+    // 2. 内容不能为空或太短（至少50个字符的实质内容）
+    if (content.length < 50) {
+      return { valid: false, reason: `Content too short (${content.length} chars, min 50)` };
+    }
+
+    // 3. 检测占位符标题模式
+    const placeholderPatterns = [
+      /^Memory entry\s+\d+/i,
+      /^Entry\s+\d+/i,
+      /^Note\s+\d+/i,
+      /^Untitled/i,
+      /^No title/i,
+      /^\d+$/,
+      /^Item\s+\d+/i,
+      /^Log entry/i,
+      /^Record \d+/i,
+    ];
+    for (const pattern of placeholderPatterns) {
+      if (pattern.test(title)) {
+        return { valid: false, reason: `Placeholder title detected: "${title}"` };
+      }
+    }
+
+    // 4. 检测内容是否只是元数据描述（无实质信息）
+    const metadataOnlyPatterns = [
+      /^Memory entry \d+ regarding/i,
+      /^This is a memory entry/i,
+      /^Conversation from .+ to/i,
+      /^Session \d+ /i,
+      /^A summary of/i,
+    ];
+    for (const pattern of metadataOnlyPatterns) {
+      if (pattern.test(content)) {
+        return { valid: false, reason: `Metadata-only content: "${content.substring(0, 60)}..."` };
+      }
+    }
+
+    // 5. 标题和内容不能相同（防止 LLM 偷懒只返回标题）
+    if (content === title) {
+      return { valid: false, reason: "Content identical to title" };
+    }
+
+    // 6. 内容中实质性词汇比例检查（不能全是 "the", "a", "is" 等虚词）
+    const words = content.split(/\s+/).filter((w) => w.length > 2);
+    if (words.length < 5) {
+      return { valid: false, reason: `Too few meaningful words (${words.length})` };
+    }
+
+    return { valid: true };
+  }
+
   private async createNoteFromSummary(summary: DistillSummary): Promise<ZettelNote | null> {
+    // 质量校验
+    const validation = this.validateSummary(summary);
+    if (!validation.valid) {
+      console.warn(`[Distiller] Skipping low-quality summary: ${validation.reason}`);
+      return null;
+    }
+
     try {
       const params: CreateNoteParams = {
         title: summary.title,

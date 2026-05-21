@@ -8,7 +8,7 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-[![Version](https://img.shields.io/badge/version-v1.0.0--beta.5-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.0--beta.6-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24-green.svg)](https://github.com/openclaw)
 [![MCP Server](https://img.shields.io/badge/MCP-28%20Tools-orange.svg)](src/mcp/server.ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -20,12 +20,12 @@
 
 | 组件 | 版本 | 状态 |
 |------|------|------|
-| 插件 | `v1.0.0-beta.5` | 活跃开发中 |
+| 插件 | `v1.0.0-beta.6` | 活跃开发中 |
 | Skill | `v1.0.0-beta.3` | 活跃开发中 |
 | OpenClaw | `2026.4.24` | 在 2026.4.24 上开发测试；兼容 >= 2026.4.23 |
 | Node.js | `>= 22.14.0` | 必需（`node:sqlite`） |
 
-**最新发布**: [v1.0.0-beta.5](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.5) — Phase 5 进化系统 + 并发安全 + 文档体系重建
+**最新发布**: [v1.0.0-beta.6](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.6) — 自动审核 + 蒸馏质量校验 + Memory 格式修复
 
 ---
 

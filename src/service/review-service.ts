@@ -158,32 +158,88 @@ export class ReviewService {
   }
 
   /**
-   * 自动审核（基于置信度）
+   * 自动审核（基于置信度 + 内容质量）
+   * @param targetType 审核目标类型
+   * @param targetId 目标ID
+   * @param confidence 置信度
+   * @param contentLength 内容长度（可选，用于质量判断）
+   * @returns 审核记录或 null（需要人工审核）
    */
-  autoReview(targetType: ReviewTargetType, targetId: string, confidence: number): Review | null {
-    // 如果置信度超过阈值，自动通过
-    if (confidence >= this.config.autoReviewThreshold) {
+  autoReview(
+    targetType: ReviewTargetType,
+    targetId: string,
+    confidence: number,
+    contentLength?: number
+  ): Review | null {
+    // 内容质量评分：结合置信度和内容长度
+    let qualityScore = confidence;
+    if (contentLength !== undefined) {
+      if (contentLength >= 200) qualityScore += 0.1;
+      else if (contentLength < 50) qualityScore -= 0.3;
+    }
+    qualityScore = Math.min(1.0, Math.max(0.0, qualityScore));
+
+    // 高质量笔记：自动通过
+    if (qualityScore >= this.config.autoReviewThreshold) {
       return this.createReview({
         targetType,
         targetId,
         action: "approve",
         newConfidence: confidence,
-        comment: "Auto-approved by confidence threshold",
+        comment: `Auto-approved (quality=${qualityScore.toFixed(2)}, confidence=${confidence.toFixed(2)}, len=${contentLength || "?"})`,
       });
     }
 
-    // 如果置信度太低，自动标记
-    if (confidence < 0.5) {
+    // 低质量笔记：自动标记（flag），移入 inbox
+    if (qualityScore < 0.4) {
       return this.createReview({
         targetType,
         targetId,
         action: "flag",
         previousConfidence: confidence,
-        comment: "Auto-flagged due to low confidence",
+        comment: `Auto-flagged (quality=${qualityScore.toFixed(2)}, confidence=${confidence.toFixed(2)}, len=${contentLength || "?"})`,
       });
     }
 
+    // 中等质量：不做自动处理，保留 inbox 状态等待人工审核
     return null;
+  }
+
+  /**
+   * 批量自动审核 Inbox 中的笔记
+   * @returns 审核结果统计
+   */
+  autoReviewInbox(): { approved: number; flagged: number; skipped: number; total: number } {
+    const pendingNotes = this.db
+      .prepare(
+        `SELECT id, confidence, LENGTH(content) as content_length, title
+         FROM zettel_notes
+         WHERE reviewed = 0
+         ORDER BY created_at DESC
+         LIMIT 100`
+      )
+      .all() as Array<{
+        id: string;
+        confidence: number;
+        content_length: number;
+        title: string;
+      }>;
+
+    let approved = 0;
+    let flagged = 0;
+    let skipped = 0;
+
+    for (const note of pendingNotes) {
+      const review = this.autoReview("note", note.id, note.confidence || 0, note.content_length || 0);
+      if (review) {
+        if (review.action === "approve") approved++;
+        else if (review.action === "flag") flagged++;
+      } else {
+        skipped++;
+      }
+    }
+
+    return { approved, flagged, skipped, total: pendingNotes.length };
   }
 
   /**

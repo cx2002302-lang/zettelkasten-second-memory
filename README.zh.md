@@ -112,7 +112,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/YOUR_USERNAME/zettelkasten-second-memory.git
+git clone https://github.com/cx2002302-lang/zettelkasten-second-memory.git
 cd zettelkasten-second-memory
 
 # 安装依赖

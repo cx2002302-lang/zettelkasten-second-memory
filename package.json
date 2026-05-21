@@ -24,12 +24,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/zettelkasten-second-memory.git"
+    "url": "https://github.com/cx2002302-lang/zettelkasten-second-memory.git"
   },
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/zettelkasten-second-memory/issues"
+    "url": "https://github.com/cx2002302-lang/zettelkasten-second-memory/issues"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/zettelkasten-second-memory#readme",
+  "homepage": "https://github.com/cx2002302-lang/zettelkasten-second-memory#readme",
   "engines": {
     "node": ">=22.14.0"
   },

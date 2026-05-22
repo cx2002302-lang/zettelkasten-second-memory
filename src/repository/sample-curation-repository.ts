@@ -15,6 +15,7 @@ import type {
   CurationStatus,
   QualityScores,
 } from "../core/types-phase5.js";
+import { DEFAULT_PAGE_SIZE, MAX_SAMPLE_COUNT } from "../core/constants.js";
 
 export class SampleCurationRepository {
   constructor(private db: DatabaseSync) {}
@@ -117,7 +118,7 @@ export class SampleCurationRepository {
       ? `WHERE ${conditions.join(" AND ")}`
       : "";
 
-    const limit = params.limit ?? 50;
+    const limit = params.limit ?? DEFAULT_PAGE_SIZE;
     const offset = params.offset ?? 0;
 
     const rows = this.db
@@ -213,7 +214,7 @@ export class SampleCurationRepository {
   /**
    * 获取高质量样本（用于导出）
    */
-  getHighQualitySamples(minScore: number = 0.8, limit: number = 1000): SampleCuration[] {
+  getHighQualitySamples(minScore: number = 0.8, limit: number = MAX_SAMPLE_COUNT): SampleCuration[] {
     const rows = this.db
       .prepare(
         `SELECT sc.* FROM zettel_sample_curations sc

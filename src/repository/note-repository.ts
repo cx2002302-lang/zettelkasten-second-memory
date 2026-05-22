@@ -14,7 +14,7 @@ import {
   getNoteFilePath,
   checkAtomicity,
 } from "../core/utils.js";
-import { DEFAULT_NOTE_TYPE, DEFAULT_NOTE_STATUS, DEFAULT_NOTE_FOLDER, DEFAULT_CONFIDENCE } from "../core/constants.js";
+import { DEFAULT_NOTE_TYPE, DEFAULT_NOTE_STATUS, DEFAULT_NOTE_FOLDER, DEFAULT_CONFIDENCE, DEFAULT_TRUNCATE_LENGTH, DEFAULT_PAGE_LIMIT, FTS_SNIPPET_LENGTH } from "../core/constants.js";
 
 export class NoteRepository {
   constructor(private db: DatabaseSync) {}
@@ -35,14 +35,15 @@ export class NoteRepository {
     // 检查原子化原则
     const atomicityCheck = checkAtomicity(params.content);
     if (!atomicityCheck.isAtomic) {
-      console.warn("Atomicity check failed:", atomicityCheck.issues);
+      // TODO: replace with structured logger
+      // console.warn("Atomicity check failed:", atomicityCheck.issues);
       // 这里可以抛出错误或仅记录警告，根据配置决定
     }
     
     // 生成摘要
     const summary = params.generateSummary !== false
       ? generateSummary(params.content)
-      : params.content.substring(0, 280);
+      : params.content.substring(0, DEFAULT_TRUNCATE_LENGTH);
     
     // 构建卡片对象
     const note: ZettelNote = {
@@ -322,9 +323,15 @@ export class NoteRepository {
     }
     
     // 排序
-    const sortBy = params.sortBy ?? "createdAt";
-    const sortDirection = params.sortDirection ?? "desc";
-    query += ` ORDER BY ${sortBy} ${sortDirection}`;
+    const ALLOWED_SORT_COLUMNS: Record<string, string> = {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+      title: "title",
+      confidence: "confidence"
+    };
+    const sortCol = ALLOWED_SORT_COLUMNS[params.sortBy ?? "createdAt"] ?? "created_at";
+    const sortDir = params.sortDirection?.toUpperCase() === "ASC" ? "ASC" : "DESC";
+    query += ` ORDER BY ${sortCol} ${sortDir}`;
     
     // 分页
     if (params.limit !== undefined) {
@@ -356,7 +363,7 @@ export class NoteRepository {
   /**
    * 全文搜索（FTS + LIKE 双引擎，支持中文）
    */
-  search(query: string, limit: number = 20): SearchResult[] {
+  search(query: string, limit: number = DEFAULT_PAGE_LIMIT): SearchResult[] {
     // 判断是否包含非 ASCII 字符（如中文）
     const hasNonAscii = /[^\x00-\x7F]/.test(query);
 
@@ -372,7 +379,7 @@ export class NoteRepository {
           z.id, z.title, z.content, z.summary, z.type, z.status, z.folder, z.reviewed,
           z.confidence, z.source, z.session_key as "sessionKey", z.file_path as "filePath",
           z.created_at as "createdAt", z.updated_at as "updatedAt",
-          snippet(zettel_fts, 0, '<mark>', '</mark>', '…', 64) as snippet,
+          snippet(zettel_fts, 0, '<mark>', '</mark>', '…', FTS_SNIPPET_LENGTH) as snippet,
           rank
         FROM zettel_notes z
         JOIN zettel_fts ON z.id = zettel_fts.id
@@ -435,7 +442,7 @@ export class NoteRepository {
   /**
    * 降级搜索（当 FTS 不可用时使用 LIKE 查询）
    */
-  private fallbackSearch(query: string, limit: number = 20): SearchResult[] {
+  private fallbackSearch(query: string, limit: number = DEFAULT_PAGE_LIMIT): SearchResult[] {
     const searchPattern = `%${query}%`;
     const rows = this.db.prepare(`
       SELECT

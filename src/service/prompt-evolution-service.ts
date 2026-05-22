@@ -242,7 +242,8 @@ export class PromptEvolutionService {
    */
   applyEvolutionSuggestion(suggestionId: string): PromptVersion | null {
     // 这里简化处理，实际应该从存储中获取建议并应用
-    console.log(`[PromptEvolution] Applying suggestion ${suggestionId}`);
+    // TODO: replace with structured logger
+    // console.log(`[PromptEvolution] Applying suggestion ${suggestionId}`);
     return null;
   }
 

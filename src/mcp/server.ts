@@ -34,6 +34,7 @@ import type {
   SourceType,
   LLMProvider,
 } from "../core/types.js";
+import { DEFAULT_PAGE_LIMIT, DEFAULT_PAGE_SIZE } from "../core/constants.js";
 
 export interface ZettelkastenMCPConfig {
   /** 数据库文件路径 */
@@ -88,7 +89,7 @@ export class ZettelkastenMCPServer {
   /**
    * 搜索笔记（全文搜索）
    */
-  async searchNotes(query: string, limit: number = 20) {
+  async searchNotes(query: string, limit: number = DEFAULT_PAGE_LIMIT) {
     if (!this.config.enableReadOnlyTools) {
       throw new Error("Read-only tools are disabled");
     }
@@ -155,7 +156,7 @@ export class ZettelkastenMCPServer {
   /**
    * 搜索已归档笔记
    */
-  async searchArchived(query: string, limit: number = 20) {
+  async searchArchived(query: string, limit: number = DEFAULT_PAGE_LIMIT) {
     if (!this.config.enableReadOnlyTools) {
       throw new Error("Read-only tools are disabled");
     }
@@ -323,7 +324,7 @@ export class ZettelkastenMCPServer {
   /**
    * 获取 Inbox 待审核队列
    */
-  async getInboxQueue(limit: number = 50): Promise<ZettelNote[]> {
+  async getInboxQueue(limit: number = DEFAULT_PAGE_SIZE): Promise<ZettelNote[]> {
     if (!this.config.enableReadWriteTools) {
       throw new Error("Read-write tools are disabled");
     }
@@ -352,7 +353,7 @@ export class ZettelkastenMCPServer {
   /**
    * 获取所有工具（根据权限配置过滤）
    */
-  getTools() {
+  getTools(): any[] {
     const tools: any[] = [];
 
     if (this.config.enableReadOnlyTools) {
@@ -364,7 +365,7 @@ export class ZettelkastenMCPServer {
             type: "object",
             properties: {
               query: { type: "string", description: "搜索关键词" },
-              limit: { type: "number", description: "返回数量", default: 20 },
+              limit: { type: "number", description: "返回数量", default: DEFAULT_PAGE_LIMIT },
             },
             required: ["query"],
           },
@@ -418,7 +419,7 @@ export class ZettelkastenMCPServer {
           inputSchema: {
             type: "object",
             properties: {
-              limit: { type: "number", description: "返回数量", default: 20 },
+              limit: { type: "number", description: "返回数量", default: DEFAULT_PAGE_LIMIT },
               statusFilter: { type: "array", items: { type: "string", enum: ["evergreen", "active", "stable", "zombie"] }, description: "状态筛选" },
               minGlow: { type: "number", description: "最小发光度", default: 0 },
             },
@@ -435,7 +436,7 @@ export class ZettelkastenMCPServer {
           inputSchema: {
             type: "object",
             properties: {
-              limit: { type: "number", description: "返回数量", default: 20 },
+              limit: { type: "number", description: "返回数量", default: DEFAULT_PAGE_LIMIT },
             },
           },
           handler: async (args: any) => await this.findZombies(args.limit),
@@ -447,7 +448,7 @@ export class ZettelkastenMCPServer {
             type: "object",
             properties: {
               query: { type: "string", description: "搜索关键词" },
-              limit: { type: "number", description: "返回数量", default: 20 },
+              limit: { type: "number", description: "返回数量", default: DEFAULT_PAGE_LIMIT },
             },
             required: ["query"],
           },
@@ -461,7 +462,7 @@ export class ZettelkastenMCPServer {
             properties: {
               noteId: { type: "string", description: "指定笔记 ID 筛选" },
               action: { type: "string", enum: ["archive", "unarchive", "auto_archive"], description: "操作类型筛选" },
-              limit: { type: "number", description: "返回数量", default: 50 },
+              limit: { type: "number", description: "返回数量", default: DEFAULT_PAGE_SIZE },
             },
           },
           handler: async (args: any) => await this.getArchiveLog({
@@ -597,7 +598,7 @@ export class ZettelkastenMCPServer {
           inputSchema: {
             type: "object",
             properties: {
-              limit: { type: "number", description: "返回数量", default: 50 },
+              limit: { type: "number", description: "返回数量", default: DEFAULT_PAGE_SIZE },
             },
           },
           handler: async (args: any) => await this.getInboxQueue(args.limit),
@@ -632,15 +633,17 @@ export class ZettelkastenMCPServer {
   /**
    * 启动 MCP 服务器（集成到 OpenClaw）
    */
-  start() {
-    console.log("Zettelkasten MCP server started");
+  start(): void {
+    // TODO: replace with structured logger
+    // console.log("Zettelkasten MCP server started");
     // TODO: 注册到 OpenClaw MCP 管理器
   }
 
   /**
    * 停止 MCP 服务器
    */
-  stop() {
-    console.log("Zettelkasten MCP server stopped");
+  stop(): void {
+    // TODO: replace with structured logger
+    // console.log("Zettelkasten MCP server stopped");
   }
 }

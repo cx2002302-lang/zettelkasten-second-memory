@@ -434,6 +434,10 @@ export interface ReviewServiceConfig {
   reviewTimeoutHours: number;
   /** 通知方式 */
   notificationChannels: string[];
+  /** 飞书 Webhook URL（可选，用于 Inbox 积压提醒） */
+  feishuWebhook?: string;
+  /** 积压处理：超过 N 天未审核的笔记强制处理 */
+  staleReviewDays: number;
 }
 
 /** 反馈服务配置 */

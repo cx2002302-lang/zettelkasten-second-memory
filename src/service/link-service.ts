@@ -11,7 +11,8 @@
 import type { DatabaseSync } from "node:sqlite";
 import { LinkRepository } from "../repository/link-repository.js";
 import { NoteRepository } from "../repository/note-repository.js";
-import type { Link, LinkType } from "../core/types.js";
+import type { Link, LinkType, LinkStats } from "../core/types.js";
+import { getReverseLinkType } from "../core/utils.js";
 
 export interface CreateLinkOptions {
   /** 是否自动创建反向链接（默认 true） */
@@ -79,7 +80,7 @@ export class LinkService {
 
     // 自动创建反向链接（如果启用）
     if (autoReverse && this.config.autoBidirectional) {
-      const reverseType = this.getReverseLinkType(type);
+      const reverseType = getReverseLinkType(type) as LinkType;
       this.linkRepo.create(toNoteId, fromNoteId, reverseType, context);
     }
   }
@@ -97,7 +98,7 @@ export class LinkService {
     
     // 如果存在反向链接，也删除
     if (deleted && this.config.autoBidirectional) {
-      const reverseType = this.getReverseLinkType(type);
+      const reverseType = getReverseLinkType(type) as LinkType;
       this.linkRepo.delete(toNoteId, fromNoteId, reverseType);
     }
     
@@ -142,7 +143,7 @@ export class LinkService {
   /**
    * 获取链接统计信息
    */
-  getStats() {
+  getStats(): LinkStats {
     return this.linkRepo.getStats();
   }
 
@@ -220,24 +221,5 @@ export class LinkService {
     }
   }
 
-  /**
-   * 获取反向链接类型
-   */
-  private getReverseLinkType(type: LinkType): LinkType {
-    const reverseMap: Record<string, LinkType> = {
-      supports: "supported_by",
-      supported_by: "supports",
-      refines: "refined_by",
-      refined_by: "refines",
-      extends: "extended_by",
-      extended_by: "extends",
-      contradicts: "contradicted_by",
-      contradicted_by: "contradicts",
-      is_example_of: "has_example",
-      has_example: "is_example_of",
-      related: "related",
-    };
-    
-    return (reverseMap[type] || type) as LinkType;
-  }
+
 }

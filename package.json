@@ -1,37 +1,9 @@
 {
-  "name": "zettelkasten-second-memory",
-  "version": "1.0.0-beta.6",
-  "description": "An AI-powered Zettelkasten second-memory system with atomic note-taking, bi-directional linking, and knowledge-graph distillation for OpenClaw.",
+  "name": "zettelkasten-plugin",
+  "version": "1.0.0-beta.7",
   "type": "module",
-  "main": "src/index.ts",
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "keywords": [
-    "zettelkasten",
-    "second-memory",
-    "knowledge-management",
-    "note-taking",
-    "bi-directional-linking",
-    "openclaw",
-    "mcp",
-    "ai",
-    "sqlite",
-    "markdown"
-  ],
-  "author": "Zettelkasten Contributors",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/cx2002302-lang/zettelkasten-second-memory.git"
-  },
-  "bugs": {
-    "url": "https://github.com/cx2002302-lang/zettelkasten-second-memory/issues"
-  },
-  "homepage": "https://github.com/cx2002302-lang/zettelkasten-second-memory#readme",
-  "engines": {
-    "node": ">=22.14.0"
+    "test": "vitest run"
   },
   "dependencies": {
     "@sinclair/typebox": "0.34.49"

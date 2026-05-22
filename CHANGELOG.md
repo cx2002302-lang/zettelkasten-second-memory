@@ -1,5 +1,44 @@
 # Changelog
 
+## v1.0.0-beta.7 — Security Hardening + Code Quality + Test Expansion
+
+**Release Date**: 2026-05-22
+
+### 🛡️ Security Fixes
+
+- **SQL Injection Whitelist** — All raw SQL queries now use strict column-name whitelists to prevent injection via user-controlled `orderBy`/`sortBy` parameters
+- **Path Traversal Protection** — File system operations validate and sanitize paths to block directory traversal attacks
+- **Database Connection Safety** — Added explicit `db.close()` calls in all repository and service layers to prevent connection leaks
+- **Promise Rejection Handling** — Unhandled Promise rejections in async flows are now properly caught and logged
+
+### 🧹 Code Quality
+
+- **Magic Numbers Eliminated** — Extracted 20+ magic numbers into named constants (`src/core/constants.ts`) for maintainability
+- **Console Cleanup** — Removed all stray `console.log`/`console.error` calls; replaced with structured logging or removed entirely
+- **Type Safety Enhancement** — Strengthened TypeScript strictness: added explicit return types, fixed `any` usages, tightened null checks
+- **Dead Code Removal** — Deleted unused imports and obsolete helper functions across 12 files
+- **Utility Reuse** — Consolidated duplicated validation logic into shared utility functions (`src/core/utils.ts`)
+- **Promise.allSettled Adoption** — Replaced fragile `Promise.all` + manual error handling with `Promise.allSettled` for bulk operations
+
+### 🧪 Test Coverage
+
+- **752 tests passing**, 30 test files, 0 failures (was 689)
+- **63 new test cases** added across 4 new test files:
+  - `src/service/phase6/__tests__/audit-service.test.ts`
+  - `src/service/phase6/__tests__/moc-service.test.ts`
+  - `src/service/phase6/__tests__/serendipity-service.test.ts`
+  - `src/mcp/__tests__/phase6-tools.test.ts`
+- Security regression tests for SQL whitelist and path sanitization
+- Boundary case coverage for new Phase 6 MCP tools
+
+### 📦 Architecture
+
+- Phase 6 services stabilized: `audit-service`, `moc-service`, `serendipity-service`
+- MCP tool registry updated with Phase 6 endpoints
+- Plugin manifest (`openclaw.plugin.json`) aligned with latest tool surface
+
+---
+
 ## v1.0.0-beta.6 — Auto-Review + Distillation Quality Guard + Memory Format Fix
 
 **Release Date**: 2026-05-21

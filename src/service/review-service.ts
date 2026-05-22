@@ -35,6 +35,7 @@ export class ReviewService {
       autoReviewThreshold: 0.9,
       reviewTimeoutHours: 24,
       notificationChannels: [],
+      staleReviewDays: 14,
       ...config,
     };
   }
@@ -243,6 +244,110 @@ export class ReviewService {
   }
 
   /**
+   * 自动处理积压的 Inbox 笔记（超过 staleReviewDays 天未审核）
+   *
+   * 策略：
+   * - conf ≥ 0.5 且 content ≥ 50 → auto-approve → zettels
+   * - conf < 0.3 或 content < 50 → auto-archive
+   * - 其他 → flag（保留 inbox，但创建 review 记录）
+   *
+   * @returns 处理结果统计
+   */
+  autoReviewStaleInbox(): { approved: number; archived: number; flagged: number; total: number } {
+    const staleNotes = this.db
+      .prepare(
+        `SELECT id, confidence, LENGTH(content) as content_length, title, created_at,
+                julianday('now') - julianday(created_at) as age_days
+         FROM zettel_notes
+         WHERE reviewed = 0
+         AND julianday('now') - julianday(created_at) > ?
+         ORDER BY created_at ASC`
+      )
+      .all(this.config.staleReviewDays) as Array<{
+        id: string;
+        confidence: number;
+        content_length: number;
+        title: string;
+        created_at: string;
+        age_days: number;
+      }>;
+
+    let approved = 0;
+    let archived = 0;
+    let flagged = 0;
+
+    for (const note of staleNotes) {
+      const conf = note.confidence || 0;
+      const len = note.content_length || 0;
+
+      if (conf >= 0.5 && len >= 50) {
+        // 积压但质量不错 → 自动通过
+        this.createReview({
+          targetType: "note",
+          targetId: note.id,
+          action: "approve",
+          newConfidence: conf,
+          comment: `Auto-approved stale inbox (age=${Math.floor(note.age_days)}d, conf=${conf.toFixed(2)}, len=${len})`,
+        });
+        approved++;
+      } else if (conf < 0.3 || len < 50) {
+        // 积压且质量差 → 自动归档（不创建 review 记录，直接归档）
+        this.db.prepare(
+          `UPDATE zettel_notes SET folder = 'archive', reviewed = 1 WHERE id = ?`
+        ).run(note.id);
+        archived++;
+      } else {
+        // 中间地带 → flag，保留 inbox
+        this.createReview({
+          targetType: "note",
+          targetId: note.id,
+          action: "flag",
+          previousConfidence: conf,
+          comment: `Auto-flagged stale inbox (age=${Math.floor(note.age_days)}d, conf=${conf.toFixed(2)}, len=${len})`,
+        });
+        flagged++;
+      }
+    }
+
+    return { approved, archived, flagged, total: staleNotes.length };
+  }
+
+  /**
+   * 获取 Inbox 积压摘要（用于飞书通知）
+   */
+  getInboxDigest(): { total: number; oldestDays: number; topItems: Array<{ title: string; confidence: number; ageDays: number }> } {
+    const pendingNotes = this.db
+      .prepare(
+        `SELECT title, confidence, julianday('now') - julianday(created_at) as age_days
+         FROM zettel_notes
+         WHERE reviewed = 0
+         ORDER BY created_at ASC
+         LIMIT 10`
+      )
+      .all() as Array<{
+        title: string;
+        confidence: number;
+        age_days: number;
+      }>;
+
+    const total = (
+      this.db.prepare("SELECT COUNT(*) as c FROM zettel_notes WHERE reviewed = 0").get() as { c: number }
+    ).c;
+
+    const oldest = pendingNotes.length > 0 ? Math.floor(pendingNotes[0].age_days) : 0;
+
+    return {
+      total,
+      oldestDays: oldest,
+      topItems: pendingNotes.slice(0, 5).map((n) => ({
+        title: n.title?.substring(0, 40) || "[无标题]",
+        confidence: n.confidence || 0,
+        ageDays: Math.floor(n.age_days),
+      })),
+    };
+  }
+
+  /**
    * 获取目标的审核历史
    */
   getReviewHistory(targetType: ReviewTargetType, targetId: string): Review[] {
@@ -294,6 +399,7 @@ export class ReviewService {
 
     values.push(noteId);
 
+    // 注：updates 中的字段名均为内部硬编码，非用户输入，无需白名单校验
     this.db.prepare(
       `UPDATE zettel_notes SET ${updates.join(", ")} WHERE id = ?`
     ).run(...values);

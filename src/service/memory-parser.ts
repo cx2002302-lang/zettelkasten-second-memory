@@ -269,6 +269,9 @@ export class MemoryParser {
    * @returns 文件路径（优先 .json，回退 .md）
    */
   getMemoryFilePath(basePath: string, date: string): string {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD.`);
+    }
     const jsonPath = join(basePath, "memory", `${date}.json`);
     if (existsSync(jsonPath)) return jsonPath;
     const mdPath = join(basePath, "memory", `${date}.md`);

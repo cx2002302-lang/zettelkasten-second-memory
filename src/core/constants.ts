@@ -35,6 +35,45 @@ export const DEFAULT_NOTE_FOLDER = "inbox" as const;
 /** 默认置信度 (0-1) */
 export const DEFAULT_CONFIDENCE = 0.5;
 
+/** 摘要默认长度 (字符) */
+export const DEFAULT_SUMMARY_LENGTH = 280;
+
+/** 默认截断长度 (字符) */
+export const DEFAULT_TRUNCATE_LENGTH = 280;
+
+/** 默认分页大小 */
+export const DEFAULT_PAGE_SIZE = 50;
+
+/** 默认分页限制 */
+export const DEFAULT_PAGE_LIMIT = 20;
+
+/** 最大分页大小 */
+export const MAX_PAGE_SIZE = 100;
+
+/** 默认相似度阈值 */
+export const DEFAULT_SIMILARITY_THRESHOLD = 0.85;
+
+/** 默认置信度阈值 */
+export const DEFAULT_CONFIDENCE_THRESHOLD = 0.7;
+
+/** 最小置信度阈值 */
+export const MIN_CONFIDENCE_THRESHOLD = 0.4;
+
+/** 最大样本数量 */
+export const MAX_SAMPLE_COUNT = 1000;
+
+/** FTS 片段长度 */
+export const FTS_SNIPPET_LENGTH = 64;
+
+/** 僵尸笔记天数阈值 */
+export const ZOMBIE_DAYS_THRESHOLD = 180;
+
+/** 默认去重候选数 */
+export const DEFAULT_DEDUPE_CANDIDATES = 6;
+
+/** 单笔记最大链接数 */
+export const MAX_LINKS_PER_NOTE = 100;
+
 /** ID 格式正则表达式 (YYYYMMDDHHMMSS + 3位随机数) */
 export const ID_REGEX = /^(\d{17})$/;
 

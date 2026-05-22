@@ -72,7 +72,8 @@ export class FeedbackService {
    */
   private handlePositiveFeedback(feedback: Feedback): void {
     // 正面反馈可用于提升相关内容的权重
-    console.log(`[FeedbackService] Positive feedback received for ${feedback.targetType}:${feedback.targetId}`);
+    // TODO: replace with structured logger
+    // console.log(`[FeedbackService] Positive feedback received for ${feedback.targetType}:${feedback.targetId}`);
   }
 
   /**
@@ -80,7 +81,8 @@ export class FeedbackService {
    */
   private handleNegativeFeedback(feedback: Feedback): void {
     // 负面反馈触发人工审核
-    console.log(`[FeedbackService] Negative feedback received for ${feedback.targetType}:${feedback.targetId}`);
+    // TODO: replace with structured logger
+    // console.log(`[FeedbackService] Negative feedback received for ${feedback.targetType}:${feedback.targetId}`);
   }
 
   /**
@@ -88,7 +90,8 @@ export class FeedbackService {
    */
   private handleCorrectionFeedback(feedback: Feedback): void {
     // 纠错反馈用于改进系统
-    console.log(`[FeedbackService] Correction received for ${feedback.targetType}:${feedback.targetId}`);
+    // TODO: replace with structured logger
+    // console.log(`[FeedbackService] Correction received for ${feedback.targetType}:${feedback.targetId}`);
   }
 
   /**
@@ -96,7 +99,8 @@ export class FeedbackService {
    */
   private handleSuggestionFeedback(feedback: Feedback): void {
     // 建议反馈用于系统优化
-    console.log(`[FeedbackService] Suggestion received for ${feedback.targetType}:${feedback.targetId}`);
+    // TODO: replace with structured logger
+    // console.log(`[FeedbackService] Suggestion received for ${feedback.targetType}:${feedback.targetId}`);
   }
 
   /**

@@ -22,14 +22,15 @@ import type {
 } from "../core/types.js";
 import { generateZettelId, toISOString } from "../core/utils.js";
 import { MemoryParser } from "./memory-parser.js";
+import { DEFAULT_CONFIDENCE_THRESHOLD, MIN_CONFIDENCE_THRESHOLD, DEFAULT_SIMILARITY_THRESHOLD } from "../core/constants.js";
 import { DedupeService } from "./dedupe-service.js";
 import { NoteService } from "./note-service.js";
 import { LinkService } from "./link-service.js";
 
 /** 默认配置 */
 const DEFAULT_CONFIG: DistillerServiceConfig = {
-  highConfidenceThreshold: 0.7,
-  mediumConfidenceThreshold: 0.4,
+  highConfidenceThreshold: DEFAULT_CONFIDENCE_THRESHOLD,
+  mediumConfidenceThreshold: MIN_CONFIDENCE_THRESHOLD,
   batchSize: 10,
   maxSliceTokens: 2000,
   nightModeEnabled: true,
@@ -92,7 +93,10 @@ export class DistillerService {
       // Step 5: 执行决策并创建笔记
       const results = await this.executeDecisions(candidates);
 
-      job.decisions = candidates.map((c) => c.llmDecision!);
+      const validDecisions = candidates
+        .filter((c): c is typeof c & { llmDecision: NonNullable<typeof c.llmDecision> } => c.llmDecision != null)
+        .map(c => c.llmDecision);
+      job.decisions = validDecisions;
       job.createdCount = results.created;
       job.mergedCount = results.merged;
       job.skippedCount = results.skipped;
@@ -136,7 +140,10 @@ export class DistillerService {
       // 执行决策
       const results = await this.executeDecisions(candidates);
 
-      job.decisions = candidates.map((c) => c.llmDecision!);
+      const validDecisions = candidates
+        .filter((c): c is typeof c & { llmDecision: NonNullable<typeof c.llmDecision> } => c.llmDecision != null)
+        .map(c => c.llmDecision);
+      job.decisions = validDecisions;
       job.createdCount = results.created;
       job.mergedCount = results.merged;
       job.skippedCount = results.skipped;
@@ -305,7 +312,8 @@ export class DistillerService {
     // 质量校验
     const validation = this.validateSummary(summary);
     if (!validation.valid) {
-      console.warn(`[Distiller] Skipping low-quality summary: ${validation.reason}`);
+      // TODO: replace with structured logger
+      // console.warn(`[Distiller] Skipping low-quality summary: ${validation.reason}`);
       return null;
     }
 
@@ -336,7 +344,8 @@ export class DistillerService {
 
       return note;
     } catch (error) {
-      console.error("Failed to create note from summary:", error);
+      // TODO: replace with structured logger
+      // console.error("Failed to create note from summary:", error);
       return null;
     }
   }
@@ -409,7 +418,7 @@ export class DistillerService {
   updateConfig(config: Partial<DistillerServiceConfig>): void {
     this.config = { ...this.config, ...config };
     this.dedupeService.updateConfig({
-      vectorSimilarityThreshold: 0.85,
+      vectorSimilarityThreshold: DEFAULT_SIMILARITY_THRESHOLD,
     });
   }
 
@@ -418,6 +427,13 @@ export class DistillerService {
    */
   getConfig(): DistillerServiceConfig {
     return { ...this.config };
+  }
+
+  /**
+   * 设置 MemoryParser（测试专用注入点）
+   */
+  setMemoryParser(parser: MemoryParser): void {
+    this.memoryParser = parser;
   }
 
   /**
@@ -448,7 +464,8 @@ export class DistillerService {
             callback(job);
           }
         } catch (error) {
-          console.error("Night distillation failed:", error);
+          // TODO: replace with structured logger
+          // console.error("Night distillation failed:", error);
         }
       }
     }, interval);

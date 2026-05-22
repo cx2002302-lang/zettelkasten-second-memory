@@ -19,9 +19,10 @@ import type {
   NoteStatus,
   NoteFolder,
   SourceType,
+  SearchResult,
 } from "../core/types.js";
 import { generateZettelId, toISOString } from "../core/utils.js";
-import { DEFAULT_NOTE_FOLDER, DEFAULT_CONFIDENCE } from "../core/constants.js";
+import { DEFAULT_NOTE_FOLDER, DEFAULT_CONFIDENCE, DEFAULT_CONFIDENCE_THRESHOLD, MIN_CONFIDENCE_THRESHOLD, DEFAULT_PAGE_LIMIT, DEFAULT_PAGE_SIZE } from "../core/constants.js";
 
 export interface CreateNoteOptions {
   /** 置信度评分 0-1，影响存储位置 */
@@ -40,8 +41,8 @@ export interface NoteServiceConfig {
 }
 
 const DEFAULT_CONFIG: NoteServiceConfig = {
-  highConfidenceThreshold: 0.7,
-  mediumConfidenceThreshold: 0.4,
+  highConfidenceThreshold: DEFAULT_CONFIDENCE_THRESHOLD,
+  mediumConfidenceThreshold: MIN_CONFIDENCE_THRESHOLD,
 };
 
 export class NoteService {
@@ -116,7 +117,8 @@ export class NoteService {
         const note = await this.createNote(params, { confidence, source });
         notes.push(note);
       } catch (error) {
-        console.error(`Failed to create note "${params.title}":`, error);
+        // TODO: replace with structured logger
+        // console.error(`Failed to create note "${params.title}":`, error);
         // 继续处理其他笔记
       }
     }
@@ -193,7 +195,7 @@ export class NoteService {
     return await this.updateNote(id, { folder: "zettels", preserveUpdatedAt: true });
   }
 
-  async searchNotes(query: string, limit: number = 20, options?: { includeArchived?: boolean }) {
+  async searchNotes(query: string, limit: number = DEFAULT_PAGE_LIMIT, options?: { includeArchived?: boolean }): Promise<SearchResult[]> {
     const results = await this.noteRepo.search(query, limit);
     if (!options?.includeArchived) {
       return results.filter(r => r.note.folder !== 'archive');
@@ -265,7 +267,7 @@ export class NoteService {
   /**
    * 获取 Inbox 待审核列表
    */
-  async getInboxQueue(limit: number = 50): Promise<ZettelNote[]> {
+  async getInboxQueue(limit: number = DEFAULT_PAGE_SIZE): Promise<ZettelNote[]> {
     return this.noteRepo.query({
       limit,
       sortBy: "createdAt",
@@ -286,7 +288,7 @@ export class NoteService {
 
     if (decision === "approve") {
       // 批准：移动到对应置信度区域
-      const newConfidence = improvements?.confidence ?? Math.max(0.7, note.confidence ?? 0);
+      const newConfidence = improvements?.confidence ?? Math.max(DEFAULT_CONFIDENCE_THRESHOLD, note.confidence ?? 0);
       const newFolder = this.routeByConfidence(newConfidence);
       
       return await this.updateNote(id, {
@@ -350,7 +352,8 @@ export class NoteService {
       
       // 如果没找到，可以尝试按标题查找（简化：跳过）
       if (!targetNote) {
-        console.warn(`Target note "${target}" not found, skipping link creation`);
+        // TODO: replace with structured logger
+        // console.warn(`Target note "${target}" not found, skipping link creation`);
         continue;
       }
       

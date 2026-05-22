@@ -239,22 +239,25 @@ export function extractLinksFromContent(content: string): string[] {
 /**
  * 深度比较两个对象是否相等
  */
-export function deepEqual(a: any, b: any): boolean {
+export function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
-  
+
   if (typeof a !== typeof b) return false;
   if (a === null || b === null) return a === b;
   if (typeof a !== 'object') return false;
-  
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-  
+
+  const objA = a as Record<string, unknown>;
+  const objB = b as Record<string, unknown>;
+
+  const keysA = Object.keys(objA);
+  const keysB = Object.keys(objB);
+
   if (keysA.length !== keysB.length) return false;
-  
+
   for (const key of keysA) {
     if (!keysB.includes(key)) return false;
-    if (!deepEqual(a[key], b[key])) return false;
+    if (!deepEqual(objA[key], objB[key])) return false;
   }
-  
+
   return true;
 }

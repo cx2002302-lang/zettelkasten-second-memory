@@ -17,10 +17,11 @@ import type {
   DistillDecision,
 } from "../core/types.js";
 import { generateZettelId, toISOString } from "../core/utils.js";
+import { DEFAULT_SIMILARITY_THRESHOLD } from "../core/constants.js";
 
 /** 默认配置 */
 const DEFAULT_CONFIG: DedupeServiceConfig = {
-  vectorSimilarityThreshold: 0.85,
+  vectorSimilarityThreshold: DEFAULT_SIMILARITY_THRESHOLD,
   maxCandidates: 5,
   embeddingModel: "text-embedding-3-small",
 };

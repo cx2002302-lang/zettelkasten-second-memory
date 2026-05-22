@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { Link, LinkType } from "../core/types.js";
+import { getReverseLinkType } from "../core/utils.js";
 
 export interface LinkStats {
   total: number;
@@ -70,7 +71,7 @@ export class LinkRepository {
     // 转换为 Link 格式，但需要调整类型方向
     return rows.map(row => ({
       to: row.from, // 注意：这里返回的是链接来源
-      type: this.getReverseLinkType(row.type),
+      type: getReverseLinkType(row.type) as LinkType,
       context: row.context,
       createdAt: row.createdAt,
     }));
@@ -217,24 +218,5 @@ export class LinkRepository {
     return result.changes > 0;
   }
   
-  /**
-   * 获取反向链接类型
-   */
-  private getReverseLinkType(type: LinkType): LinkType {
-    const reverseMap: Record<string, LinkType> = {
-      supports: "supported_by",
-      supported_by: "supports",
-      refines: "refined_by",
-      refined_by: "refines",
-      extends: "extended_by",
-      extended_by: "extends",
-      contradicts: "contradicted_by",
-      contradicted_by: "contradicts",
-      is_example_of: "has_example",
-      has_example: "is_example_of",
-      related: "related",
-    };
-    
-    return (reverseMap[type] || type) as LinkType;
-  }
+
 }

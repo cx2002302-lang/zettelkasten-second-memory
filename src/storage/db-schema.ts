@@ -1,5 +1,12 @@
 import type { DatabaseSync } from "node:sqlite";
 
+function validateIdentifier(name: string): string {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+    throw new Error(`Invalid SQL identifier: ${name}`);
+  }
+  return name;
+}
+
 export interface ZettelkastenSchemaParams {
   /** 数据库实例 */
   db: DatabaseSync;
@@ -270,7 +277,8 @@ function ensurePhase5Schema(db: DatabaseSync): void {
     let isOld = false;
     try {
       if (oldColumn) {
-        const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+        const validatedTable = validateIdentifier(table);
+        const cols = db.prepare(`PRAGMA table_info(${validatedTable})`).all() as Array<{ name: string }>;
         isOld = cols.some(c => c.name === oldColumn);
       } else {
         // 旧版 system_tunings 有 parameter_name UNIQUE 约束
@@ -282,7 +290,8 @@ function ensurePhase5Schema(db: DatabaseSync): void {
     } catch { isOld = false; }
     
     if (isOld) {
-      db.exec(`DROP TABLE IF EXISTS ${table};`);
+      const validatedTable = validateIdentifier(table);
+      db.exec(`DROP TABLE IF EXISTS ${validatedTable};`);
     }
   }
   
@@ -294,7 +303,8 @@ function ensurePhase5Schema(db: DatabaseSync): void {
     'idx_zettel_samples_score',
   ];
   for (const idx of staleIndexes) {
-    db.exec(`DROP INDEX IF EXISTS ${idx};`);
+    const validatedIdx = validateIdentifier(idx);
+    db.exec(`DROP INDEX IF EXISTS ${validatedIdx};`);
   }
   
   // 审核记录表
@@ -469,6 +479,8 @@ export function ensureColumn(
   column: string,
   definition: string
 ): void {
+  validateIdentifier(table);
+  validateIdentifier(column);
   const rows = db
     .prepare(`PRAGMA table_info(${table})`)
     .all() as Array<{ name: string }>;

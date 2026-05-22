@@ -170,6 +170,13 @@ export class SampleCurationService {
     const filename = `samples_${timestamp}.${format}`;
     const filePath = path.join(this.config.exportPath, filename);
 
+    // 路径遍历校验
+    const resolvedPath = path.resolve(filePath);
+    const resolvedBase = path.resolve(this.config.exportPath);
+    if (!resolvedPath.startsWith(resolvedBase + path.sep) && resolvedPath !== resolvedBase) {
+      throw new Error(`Path traversal detected: ${filename}`);
+    }
+
     // 获取样本数据
     const samples = sampleIds
       .map((id) => this.curationRepo.get(id))

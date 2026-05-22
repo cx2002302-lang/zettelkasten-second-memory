@@ -37,12 +37,17 @@ export class TemplateManager {
       const structurePath = join(this.templatesDir, TEMPLATE_FILES.STRUCTURE);
       const sourcePath = join(this.templatesDir, TEMPLATE_FILES.SOURCE);
       
-      // 检查文件是否存在，不存在则创建
-      await Promise.all([
+      // 检查文件是否存在，不存在则创建（非关键路径，允许部分失败）
+      const results = await Promise.allSettled([
         this.ensureTemplateFile(atomicPath, DEFAULT_TEMPLATES.ATOMIC),
         this.ensureTemplateFile(structurePath, DEFAULT_TEMPLATES.STRUCTURE),
         this.ensureTemplateFile(sourcePath, DEFAULT_TEMPLATES.ATOMIC), // source 暂时使用 atomic 模板
       ]);
+      for (const result of results) {
+        if (result.status === "rejected") {
+          console.warn(`Template initialization warning: ${result.reason}`);
+        }
+      }
     } catch (error) {
       console.error(`Failed to initialize template directory: ${error}`);
       throw error;

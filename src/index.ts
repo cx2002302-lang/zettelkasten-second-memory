@@ -71,6 +71,21 @@ export * from "./service/sample-curation-service.js";
 // Phase 5: MCP 工具
 export * from "./mcp/phase5-tools.js";
 
+// Phase 5: 其他 Service
+export * from "./service/archive-service.js";
+export * from "./service/heatmap-service.js";
+
+// Phase 6: 知识网络增值引擎
+export * from "./service/phase6/audit-service.js";
+export * from "./service/phase6/moc-service.js";
+export * from "./service/phase6/serendipity-service.js";
+
+// Engine 层
+export * from "./engine/glow-calculator.js";
+export * from "./engine/path-finder.js";
+export * from "./engine/phase6/serendipity-engine.js";
+export * from "./engine/phase6/community-detector.js";
+
 // Phase 4: 神经中枢集成
 // 注意：所有类型已经在 ./core/types.js 中定义，集成文件只导出实现类
 export {
@@ -132,12 +147,14 @@ export class ZettelkastenClient {
     });
     
     if (!schemaResult.ftsAvailable) {
-      console.warn("Full-text search not available:", schemaResult.ftsError);
+      // TODO: replace with structured logger
+      // console.warn("Full-text search not available:", schemaResult.ftsError);
     }
     
     await fs.mkdir(this.notesDir, { recursive: true });
     
-    console.log(`Zettelkasten initialized at ${this.notesDir}`);
+    // TODO: replace with structured logger
+    // console.log(`Zettelkasten initialized at ${this.notesDir}`);
   }
   
   /**

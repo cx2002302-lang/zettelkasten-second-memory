@@ -167,14 +167,15 @@ export class ZettelkastenCronScheduler {
     this.logs.push(entry);
 
     // 控制台输出
-    const prefix = `[Zettelkasten Cron] ${level.toUpperCase()}:`;
-    if (level === "error") {
-      console.error(prefix, message, details || "");
-    } else if (level === "warn") {
-      console.warn(prefix, message, details || "");
-    } else {
-      console.log(prefix, message, details || "");
-    }
+    // TODO: replace with structured logger
+    // const prefix = `[Zettelkasten Cron] ${level.toUpperCase()}:`;
+    // if (level === "error") {
+    //   console.error(prefix, message, details || "");
+    // } else if (level === "warn") {
+    //   console.warn(prefix, message, details || "");
+    // } else {
+    //   console.log(prefix, message, details || "");
+    // }
   }
 
   // ============================================================================

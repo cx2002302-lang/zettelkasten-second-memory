@@ -129,17 +129,19 @@ export class SessionEndHookManager {
    */
   initialize(): void {
     if (this.isInitialized) {
-      console.warn("[Zettelkasten SessionHook] Already initialized");
+      // TODO: replace with structured logger
+      // console.warn("[Zettelkasten SessionHook] Already initialized");
       return;
     }
 
     this.isInitialized = true;
     this.emitEvent("session_start", "system", { initialized: true });
 
-    console.log("[Zettelkasten SessionHook] Initialized", {
-      enabled: this.config.enabled,
-      minSessionMessages: this.config.minSessionMessages,
-    });
+    // TODO: replace with structured logger
+    // console.log("[Zettelkasten SessionHook] Initialized", {
+    //   enabled: this.config.enabled,
+    //   minSessionMessages: this.config.minSessionMessages,
+    // });
   }
 
   /**
@@ -149,7 +151,8 @@ export class SessionEndHookManager {
     this.isInitialized = false;
     this.listeners.clear();
     this.pendingHooks.clear();
-    console.log("[Zettelkasten SessionHook] Destroyed");
+    // TODO: replace with structured logger
+    // console.log("[Zettelkasten SessionHook] Destroyed");
   }
 
   /**
@@ -157,7 +160,8 @@ export class SessionEndHookManager {
    */
   updateConfig(config: Partial<SessionHookConfig>): void {
     this.config = { ...this.config, ...config };
-    console.log("[Zettelkasten SessionHook] Config updated", this.config);
+    // TODO: replace with structured logger
+    // console.log("[Zettelkasten SessionHook] Config updated", this.config);
   }
 
   // ============================================================================
@@ -197,7 +201,8 @@ export class SessionEndHookManager {
       try {
         listener(event);
       } catch (error) {
-        console.error("[Zettelkasten SessionHook] Event listener error:", error);
+        // TODO: replace with structured logger
+        // console.error("[Zettelkasten SessionHook] Event listener error:", error);
       }
     }
   }
@@ -212,7 +217,8 @@ export class SessionEndHookManager {
    */
   async onSessionEnd(sessionInfo: SessionInfo): Promise<SessionHookResult> {
     if (!this.config.enabled) {
-      console.log("[Zettelkasten SessionHook] Disabled, skipping session:", sessionInfo.sessionId);
+      // TODO: replace with structured logger
+      // console.log("[Zettelkasten SessionHook] Disabled, skipping session:", sessionInfo.sessionId);
       return {
         success: true,
         sessionId: sessionInfo.sessionId,
@@ -224,7 +230,8 @@ export class SessionEndHookManager {
 
     // 检查会话是否符合蒸馏条件
     if (!this.shouldDistillSession(sessionInfo)) {
-      console.log("[Zettelkasten SessionHook] Session does not meet criteria:", sessionInfo.sessionId);
+      // TODO: replace with structured logger
+      // console.log("[Zettelkasten SessionHook] Session does not meet criteria:", sessionInfo.sessionId);
       return {
         success: true,
         sessionId: sessionInfo.sessionId,
@@ -384,7 +391,8 @@ export class SessionEndHookManager {
       };
     }
 
-    console.log(`[Zettelkasten SessionHook] Retrying session ${sessionInfo.sessionId}, attempt ${attempt}`);
+    // TODO: replace with structured logger
+    // console.log(`[Zettelkasten SessionHook] Retrying session ${sessionInfo.sessionId}, attempt ${attempt}`);
 
     // 延迟重试
     await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));

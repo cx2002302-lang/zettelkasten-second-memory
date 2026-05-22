@@ -1,0 +1,14 @@
+{
+  "name": "zettelkasten-plugin",
+  "version": "1.0.0-beta.7",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "0.34.49"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  }
+}

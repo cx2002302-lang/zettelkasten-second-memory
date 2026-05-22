@@ -1,0 +1,15 @@
+version: 1.0.0-beta.2
+stage: beta
+created_at: 2026-05-10
+updated_at: 2026-05-11
+next_evolution: 2026-05-17
+evolution_count: 0
+rollback_count: 0
+
+# 动态参数（由 evolve.sh 自动调整）
+current_params:
+  sensitivity: 0.6
+  search_depth: 20
+  link_threshold: 0.6
+  tag_limit: 3
+  auto_archive: true

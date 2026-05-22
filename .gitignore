@@ -1,0 +1,4 @@
+zettelkasten-github/
+node_modules/
+.audit-reports/
+releases/

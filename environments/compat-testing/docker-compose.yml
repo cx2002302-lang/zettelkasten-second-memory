@@ -1,0 +1,93 @@
+version: "3.9"
+
+services:
+  openclaw-2026-4-23:
+    container_name: openclaw-2026-4-23
+    image: ghcr.io/openclaw/openclaw:2026.4.23
+    ports:
+      - "18790:18789"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    volumes:
+      - oc-2026-4-23-data:/root/.openclaw
+      - ./plugins/zettelkasten-current:/root/.openclaw/zettelkasten-plugin:ro
+      - ./skills/zettelkasten-brain:/root/.openclaw/skills/zettelkasten-brain:ro
+    command: ["node", "openclaw.mjs", "gateway", "--bind", "0.0.0.0"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "openclaw", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  openclaw-2026-4-24:
+    container_name: openclaw-2026-4-24
+    image: ghcr.io/openclaw/openclaw:2026.4.24
+    ports:
+      - "18791:18789"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    volumes:
+      - oc-2026-4-24-data:/root/.openclaw
+      - ./plugins/zettelkasten-current:/root/.openclaw/zettelkasten-plugin:ro
+      - ./skills/zettelkasten-brain:/root/.openclaw/skills/zettelkasten-brain:ro
+    command: ["node", "openclaw.mjs", "gateway", "--bind", "0.0.0.0"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "openclaw", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  openclaw-latest:
+    container_name: openclaw-latest
+    image: ghcr.io/openclaw/openclaw:latest
+    ports:
+      - "18792:18789"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    volumes:
+      - oc-latest-data:/root/.openclaw
+      - ./plugins/zettelkasten-current:/root/.openclaw/zettelkasten-plugin:ro
+      - ./skills/zettelkasten-brain:/root/.openclaw/skills/zettelkasten-brain:ro
+    command: ["node", "openclaw.mjs", "gateway", "--bind", "0.0.0.0"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "openclaw", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  hermes-latest:
+    container_name: hermes-latest
+    image: nousresearch/hermes-agent:latest
+    ports:
+      - "8642:8642"
+      - "9119:9119"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - HERMES_LOG_LEVEL=${HERMES_LOG_LEVEL:-info}
+    volumes:
+      - hermes-latest-data:/root/.hermes
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+volumes:
+  oc-2026-4-23-data:
+  oc-2026-4-24-data:
+  oc-latest-data:
+  hermes-latest-data:

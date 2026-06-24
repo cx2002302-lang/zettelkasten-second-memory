@@ -38,6 +38,26 @@
     "confidenceThreshold.references": {
       "label": "References Confidence Threshold",
       "help": "Minimum confidence score for a note to be moved from inbox to references."
+    },
+    "staleReviewDays": {
+      "label": "Stale Review Days",
+      "help": "Number of days after which a note is considered stale for review purposes."
+    },
+    "feishuWebhook": {
+      "label": "Feishu Webhook URL",
+      "help": "Optional Feishu webhook URL for notifications."
+    },
+    "phase6.serendipity.enabled": {
+      "label": "Enable Serendipity Discovery",
+      "help": "Automatically discover unexpected connections between notes."
+    },
+    "phase6.autoMOC.enabled": {
+      "label": "Enable Auto MOC",
+      "help": "Automatically suggest Maps of Content based on note clusters."
+    },
+    "phase6.knowledgeAudit.enabled": {
+      "label": "Enable Knowledge Audit",
+      "help": "Periodically run knowledge health audits."
     }
   },
   "configSchema": {
@@ -63,7 +83,25 @@
               "tools": {
                 "type": "array",
                 "items": { "type": "string" },
-                "default": ["zk_search_notes", "zk_get_note", "zk_get_backlinks", "zk_find_path"]
+                "default": [
+                  "zk_search_notes",
+                  "zk_get_note",
+                  "zk_get_backlinks",
+                  "zk_find_path",
+                  "zk_glow_ranking",
+                  "zk_find_zombies",
+                  "zk_search_archived",
+                  "zk_get_archive_log",
+                  "zk_knowledge_heatmap",
+                  "zk_network_graph",
+                  "zk_get_review_panel",
+                  "zk_get_review_stats",
+                  "zk_get_feedback_stats",
+                  "zk_analyze_feedback_trends",
+                  "zk_get_active_prompt",
+                  "zk_get_prompt_stats",
+                  "zk_get_curation_stats"
+                ]
               }
             }
           },
@@ -79,11 +117,29 @@
                   "zk_get_note",
                   "zk_get_backlinks",
                   "zk_find_path",
+                  "zk_glow_ranking",
+                  "zk_find_zombies",
+                  "zk_search_archived",
+                  "zk_get_archive_log",
+                  "zk_knowledge_heatmap",
+                  "zk_network_graph",
                   "zk_create_note",
                   "zk_update_note",
                   "zk_run_ceqrc",
                   "zk_distill_memory",
-                  "zk_review_note"
+                  "zk_review_note",
+                  "zk_archive_note",
+                  "zk_unarchive_note",
+                  "zk_get_review_panel",
+                  "zk_get_review_stats",
+                  "zk_submit_review",
+                  "zk_submit_feedback",
+                  "zk_get_feedback_stats",
+                  "zk_analyze_feedback_trends",
+                  "zk_get_active_prompt",
+                  "zk_get_prompt_stats",
+                  "zk_get_curation_stats",
+                  "zk_export_samples"
                 ]
               }
             }
@@ -129,6 +185,49 @@
             "minimum": 0,
             "maximum": 1,
             "default": 0.4
+          }
+        }
+      },
+      "staleReviewDays": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 90,
+        "default": 14
+      },
+      "feishuWebhook": {
+        "type": "string"
+      },
+      "phase6": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "serendipity": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean", "default": true },
+              "topK": { "type": "number", "default": 5 },
+              "minScore": { "type": "number", "default": 0.5 },
+              "autoCreateLinks": { "type": "boolean", "default": false }
+            }
+          },
+          "autoMOC": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean", "default": true },
+              "minClusterSize": { "type": "number", "default": 5 },
+              "maxClusters": { "type": "number", "default": 10 },
+              "autoCreate": { "type": "boolean", "default": false }
+            }
+          },
+          "knowledgeAudit": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean", "default": true },
+              "schedule": { "type": "string", "enum": ["daily", "weekly", "monthly"], "default": "weekly" }
+            }
           }
         }
       }

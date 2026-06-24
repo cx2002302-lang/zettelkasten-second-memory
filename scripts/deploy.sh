@@ -37,18 +37,27 @@ fi
 # 2. 复制源码
 log_info "[1/5] Copying source..."
 mkdir -p "$PLUGIN_DIR"
-rsync -av --exclude='node_modules' --exclude='__tests__' \
+# 排除测试目录、依赖目录以及历史上误创建的 brace-expansion 垃圾目录
+rsync -av \
+    --exclude='node_modules' \
+    --exclude='__tests__' \
+    --exclude='{core,repository,storage,engine,workflow,search,integration}' \
     "$PROJECT_DIR/src/" "$PLUGIN_DIR/" >/dev/null 2>&1 || \
 cp -r "$PROJECT_DIR/src/"* "$PLUGIN_DIR/"
+# 确保 cp fallback 不会把垃圾目录带过去
+if [ -d "$PLUGIN_DIR/{core,repository,storage,engine,workflow,search,integration}" ]; then
+    rm -rf "$PLUGIN_DIR/{core,repository,storage,engine,workflow,search,integration}"
+fi
 log_ok "Source copied"
 
 # 3. 安装依赖
 log_info "[2/5] Installing dependencies..."
+PLUGIN_VERSION="1.0.0-beta.7"
 if [ ! -f "$PLUGIN_DIR/package.json" ]; then
-    cat > "$PLUGIN_DIR/package.json" << 'EOF'
+    cat > "$PLUGIN_DIR/package.json" << EOF
 {
   "name": "openclaw-zettelkasten-plugin",
-  "version": "1.0.0",
+  "version": "$PLUGIN_VERSION",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -56,6 +65,20 @@ if [ ! -f "$PLUGIN_DIR/package.json" ]; then
   }
 }
 EOF
+else
+    # 确保已存在 package.json 的版本号与当前发布一致
+    python3 -c "
+import json, os
+p = os.path.expanduser('$PLUGIN_DIR/package.json')
+with open(p, 'r') as f:
+    pkg = json.load(f)
+if pkg.get('version') != '$PLUGIN_VERSION':
+    pkg['version'] = '$PLUGIN_VERSION'
+    with open(p, 'w') as f:
+        json.dump(pkg, f, indent=2, ensure_ascii=False)
+        f.write('\n')
+    print(f'Updated package.json version to $PLUGIN_VERSION')
+" 2>/dev/null || true
 fi
 
 cd "$PLUGIN_DIR"
@@ -100,9 +123,9 @@ try:
         cfg = json.load(f)
     if 'tools' in cfg and 'alsoAllow' in cfg.get('tools', {}):
         original = cfg['tools']['alsoAllow']
-        # 只保留 zk_ 前缀的工具名，移除 Skill ID（如 zettelkasten-brain, open-upsp 等）
+        # 只保留 zk_ 前缀的工具名以及插件总控名 zettelkasten，移除 Skill ID（如 zettelkasten-brain, open-upsp 等）
         cleaned = [x for x in original if x.startswith('zk_') or x == 'zettelkasten']
-        removed = [x for x in original if not x.startswith('zk_')]
+        removed = [x for x in original if not (x.startswith('zk_') or x == 'zettelkasten')]
         if removed:
             cfg['tools']['alsoAllow'] = cleaned
             with open(cfg_path, 'w') as f:

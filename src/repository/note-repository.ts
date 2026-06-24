@@ -23,8 +23,18 @@ export class NoteRepository {
    * 创建新卡片
    */
   async create(params: CreateNoteParams, notesDir: string): Promise<ZettelNote> {
-    const id = generateZettelId();
+    let id = generateZettelId();
     const now = toISOString();
+
+    // 防御性重试：同一秒内批量创建时，3 位随机后缀可能冲突
+    const MAX_ID_RETRIES = 10;
+    for (let attempt = 0; attempt < MAX_ID_RETRIES; attempt++) {
+      const existing = this.db
+        .prepare(`SELECT 1 FROM zettel_notes WHERE id = ?`)
+        .get(id);
+      if (!existing) break;
+      id = generateZettelId();
+    }
     const type = params.type ?? DEFAULT_NOTE_TYPE;
     const status = DEFAULT_NOTE_STATUS;
     const folder = params.folder ?? DEFAULT_NOTE_FOLDER;

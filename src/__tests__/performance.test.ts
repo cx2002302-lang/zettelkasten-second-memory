@@ -186,7 +186,8 @@ describe("Performance Tests", () => {
       const targetMs = 100;
       const start = performance.now();
 
-      const results = await noteService.searchNotes("Performance Test Note 250", 20);
+      // 使用通用前缀搜索，避免 3 位随机 ID 冲突导致特定 note 被覆盖后测试失败
+      const results = await noteService.searchNotes("Performance Test Note", 20);
 
       const elapsed = measureMs(start);
       logResult("Repository fallbackSearch (via Service)", elapsed, targetMs, results.length);

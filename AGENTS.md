@@ -3,8 +3,8 @@
 ## 系统版本信息（每次思考必须考虑）
 
 - **OpenClaw 版本**: 2026.4.24
-- **Zettelkasten 插件版本**: 2026.4.23-v1.0.0
-- **Skill 版本**: 1.0.0-beta.1
+- **Zettelkasten 插件版本**: 1.0.0-beta.7
+- **Skill 版本**: 1.0.0-beta.2
 - **Node 要求**: >= 22.14.0（`node:sqlite` 需要 Node 22+）
 - **OpenClaw 最低要求**: >= 2026.4.23
 
@@ -54,25 +54,26 @@ Skill 目录注册（两种路径都兼容）：
 ## 项目结构
 
 ```
-/root/openclawFiles/
-├── openclaw/                          # OpenClaw 源码（嵌入式 git 子模块）
-│   ├── src/zettelkasten/              # 完整插件源码（20,028 LOC，577 tests）
-│   │   ├── plugin/index.ts            # 插件入口（已修复 zk init + CLI 命令）
-│   │   ├── skills/brain/              # Brain Skill（beta）
-│   │   ├── service/note-service.ts    # 笔记业务层
-│   │   ├── storage/db-schema.ts       # 数据库 Schema
-│   │   └── ...
-│   └── extensions/zettelkasten/       # 捆绑插件入口
-├── zettelkasten-deployment/           # 旧部署包（已废弃，不要用）
-├── releases/                          # 发布包
-│   ├── zettelkasten-plugin-2026.4.23-v1.0.0.tar.gz
-│   └── zettelkasten-skill-v1.0.0.tar.gz
-└── plans/                             # 设计文档
+/home/myxia/.openclaw/project/zettelkasten/      # 当前项目根目录
+├── src/                                         # 完整插件源码
+│   ├── plugin/index.ts                          # 插件入口（zk init + CLI 命令）
+│   ├── skills/brain/                            # Brain Skill（beta）
+│   ├── service/note-service.ts                  # 笔记业务层
+│   ├── storage/db-schema.ts                     # 数据库 Schema（约 15 张表）
+│   └── ...
+├── zettelkasten-release/                        # 清理后的发布目录
+├── zettelkasten-github/                         # GitHub 镜像副本
+├── releases/                                    # 发布包
+│   ├── zettelkasten-plugin-1.0.0-beta.7.tar.gz
+│   └── zettelkasten-skill-v1.0.0-beta.6.tar.gz
+├── scripts/                                     # 部署与辅助脚本
+├── skills/                                      # Brain Skill 源码
+└── plans/                                       # 设计文档
 ```
 
 ## 关键修复历史
 
-1. **zk init 修复** — 显式调用 `ensureZettelkastenSchema`，创建所有 11 张表
+1. **zk init 修复** — 显式调用 `ensureZettelkastenSchema`，创建所有核心表（约 15 张，含 virtual FTS）
 2. **部署路径** — 从 `/opt/` 迁移到 `~/.openclaw/zettelkasten-plugin/`（无 sudo）
 3. **SDK 路径** — 移除 `sed` 替换，使用干净的 `openclaw/plugin-sdk/*` 导入
 4. **CLI 命令** — 新增 `new`, `list`, `search`, `show`, `link`, `doctor`
@@ -118,6 +119,6 @@ openclaw config set tools.alsoAllow '["zettelkasten"]'
 
 ## 注意事项
 
-- **不要用** `zettelkasten-deployment/` 子集，统一用 `openclaw/src/zettelkasten/` 完整版
-- **测试环境** — 当前环境 Node v22.22.2，577 个测试全部通过
-- **Git** — 主仓库在 `/root/openclawFiles/`，标签 `v1.0.0-beta.1`
+- **不要用** `zettelkasten-deployment/` 子集，统一用本项目 `src/` 完整版
+- **测试环境** — 当前环境 Node v22.22.2，862 个测试（861 通过，1 个性能测试待修复）
+- **Git** — 主仓库为当前目录 `/home/myxia/.openclaw/project/zettelkasten/`，最近提交 `备份: v1.0.0-beta.7 发布完成`

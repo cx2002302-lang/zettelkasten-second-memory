@@ -3,3 +3,11 @@ zettelkasten-release/
 node_modules/
 .audit-reports/
 releases/
+
+# 本地运行时数据（如本地 zettelkasten DB）
+~/
+
+# 兼容测试环境敏感文件与报告
+environments/compat-testing/secrets/*.env
+environments/compat-testing/.env
+environments/compat-testing/reports/

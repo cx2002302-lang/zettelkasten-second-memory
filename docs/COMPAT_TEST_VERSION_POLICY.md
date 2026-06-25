@@ -44,11 +44,12 @@
 
 4. **拉取并初始化镜像**
    ```bash
-   docker compose pull <new-service>
-   docker compose up -d <new-service>
-   docker exec -it <new-service> openclaw onboard
-   ./scripts/deploy-zk-to-container.sh <new-service>
-   ./scripts/run-compat-tests.sh
+   # 代理不稳定时使用 retry-pull.sh
+   bash scripts/retry-pull.sh ghcr.io/openclaw/openclaw:<version> 30
+
+   bash scripts/start-container.sh <new-service>
+   bash scripts/deploy-zk-to-container.sh <new-service>
+   bash scripts/run-compat-tests.sh
    ```
 
 5. **审查报告**
@@ -89,10 +90,13 @@
 
 ```bash
 # 每周一执行
-cd /opt/zettelkasten-compat
-docker compose pull openclaw-latest hermes-latest
-docker compose up -d openclaw-latest hermes-latest
-./scripts/run-compat-tests.sh
+cd environments/compat-testing
+bash scripts/retry-pull.sh ghcr.io/openclaw/openclaw:latest 30
+bash scripts/retry-pull.sh nousresearch/hermes-agent:latest 30
+bash scripts/start-container.sh openclaw-latest
+bash scripts/deploy-zk-to-container.sh openclaw-latest
+bash scripts/start-container.sh hermes-latest
+bash scripts/run-compat-tests.sh
 ```
 
 如果 `latest` 导致测试失败：
@@ -112,9 +116,12 @@ docker compose up -d openclaw-latest hermes-latest
 
 更新流程：
 ```bash
-docker compose pull openclaw-2026-4-24
-docker compose up -d openclaw-2026-4-24
-./scripts/run-compat-tests.sh --service openclaw-2026-4-24
+bash scripts/retry-pull.sh ghcr.io/openclaw/openclaw:2026.4.24 30
+docker rm -f openclaw-2026-4-24
+docker volume rm compat-testing_oc-2026-4-24-data
+bash scripts/start-container.sh openclaw-2026-4-24
+bash scripts/deploy-zk-to-container.sh openclaw-2026-4-24
+bash scripts/run-compat-tests.sh
 ```
 
 ---
@@ -157,11 +164,12 @@ docker compose up -d openclaw-2026-4-24
 
 ### OpenClaw
 
-| 版本 | 状态 | 加入日期 | 计划淘汰日期 |
-|------|------|----------|--------------|
-| `2026.4.23` | Minimum Supported | 2026-06-24 | 当插件放弃支持时 |
-| `2026.4.24` | Current Production | 2026-06-24 | 生产环境升级后 |
-| `latest` | Latest Stable | 2026-06-24 | 持续滚动 |
+| 版本 | 状态 | 加入日期 | 计划淘汰日期 | 已知差异 |
+|------|------|----------|--------------|----------|
+| `2026.4.23` | Minimum Supported | 2026-06-24 | 当插件放弃支持时 | 无 |
+| `2026.4.24` | Current Production | 2026-06-24 | 生产环境升级后 | 无 |
+| `latest` (2026.6.10) | Latest Stable | 2026-06-24 | 持续滚动 | 已移除 `agents.defaults.systemPromptOverride`；内置 minimax provider 走 Anthropic 适配，需为 `sk-cp-` CN key 配置 OpenAI-compatible 自定义 provider；Agent CLI 测试可用；Zettelkasten 插件核心功能通过 |
+| `2026.4.24` | Current Production | 2026-06-24 | 生产环境升级后 | `openclaw agent --local` 存在挂起问题（codex catalog fallback 后卡住），生产环境同样复现；zk 核心功能通过 |
 
 ### Hermes
 

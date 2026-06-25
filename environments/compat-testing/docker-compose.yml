@@ -1,21 +1,32 @@
 version: "3.9"
+#
+# 兼容测试环境 Compose 定义
+#
+# 注意：当前主机上的 docker-compose v1 (1.29.2) 与新版 Docker API 不兼容，
+# 会抛出 KeyError: 'ContainerConfig'。因此实际启动请使用：
+#   bash scripts/start-container.sh <openclaw-2026-4-23|openclaw-2026-4-24|openclaw-latest|hermes-latest>
+#   bash scripts/deploy-zk-to-container.sh <openclaw-...>
+#
+# 本文件保留作为 docker compose v2 / 新版 docker-compose 的参考配置。
+#
 
 services:
   openclaw-2026-4-23:
     container_name: openclaw-2026-4-23
     image: ghcr.io/openclaw/openclaw:2026.4.23
+    user: "1000:1000"
     ports:
-      - "18790:18789"
+      - "18890:18789"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
     volumes:
-      - oc-2026-4-23-data:/root/.openclaw
-      - ./plugins/zettelkasten-current:/root/.openclaw/zettelkasten-plugin:ro
-      - ./skills/zettelkasten-brain:/root/.openclaw/skills/zettelkasten-brain:ro
-    command: ["node", "openclaw.mjs", "gateway", "--bind", "0.0.0.0"]
+      - oc-2026-4-23-data:/home/node/.openclaw
+      - ../../..:/opt/zettelkasten-source:ro
+      - ../../skills/brain:/home/node/.openclaw/skills/zettelkasten-brain:ro
+    command: ["node", "openclaw.mjs", "gateway", "--bind", "lan", "--allow-unconfigured"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "openclaw", "status"]
@@ -27,18 +38,19 @@ services:
   openclaw-2026-4-24:
     container_name: openclaw-2026-4-24
     image: ghcr.io/openclaw/openclaw:2026.4.24
+    user: "1000:1000"
     ports:
-      - "18791:18789"
+      - "18891:18789"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
     volumes:
-      - oc-2026-4-24-data:/root/.openclaw
-      - ./plugins/zettelkasten-current:/root/.openclaw/zettelkasten-plugin:ro
-      - ./skills/zettelkasten-brain:/root/.openclaw/skills/zettelkasten-brain:ro
-    command: ["node", "openclaw.mjs", "gateway", "--bind", "0.0.0.0"]
+      - oc-2026-4-24-data:/home/node/.openclaw
+      - ../../..:/opt/zettelkasten-source:ro
+      - ../../skills/brain:/home/node/.openclaw/skills/zettelkasten-brain:ro
+    command: ["node", "openclaw.mjs", "gateway", "--bind", "lan", "--allow-unconfigured"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "openclaw", "status"]
@@ -50,18 +62,19 @@ services:
   openclaw-latest:
     container_name: openclaw-latest
     image: ghcr.io/openclaw/openclaw:latest
+    user: "1000:1000"
     ports:
-      - "18792:18789"
+      - "18892:18789"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
     volumes:
-      - oc-latest-data:/root/.openclaw
-      - ./plugins/zettelkasten-current:/root/.openclaw/zettelkasten-plugin:ro
-      - ./skills/zettelkasten-brain:/root/.openclaw/skills/zettelkasten-brain:ro
-    command: ["node", "openclaw.mjs", "gateway", "--bind", "0.0.0.0"]
+      - oc-latest-data:/home/node/.openclaw
+      - ../../..:/opt/zettelkasten-source:ro
+      - ../../skills/brain:/home/node/.openclaw/skills/zettelkasten-brain:ro
+    command: ["node", "openclaw.mjs", "gateway", "--bind", "lan", "--allow-unconfigured"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "openclaw", "status"]
@@ -74,17 +87,16 @@ services:
     container_name: hermes-latest
     image: nousresearch/hermes-agent:latest
     ports:
-      - "8642:8642"
-      - "9119:9119"
+      - "8652:8642"
+      - "9129:9119"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - HERMES_LOG_LEVEL=${HERMES_LOG_LEVEL:-info}
     volumes:
       - hermes-latest-data:/root/.hermes
+    command: ["sleep", "infinity"]
     restart: unless-stopped
-    stdin_open: true
-    tty: true
 
 volumes:
   oc-2026-4-23-data:

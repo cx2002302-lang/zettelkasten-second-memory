@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# 重置所有兼容测试环境（删除所有 named volume）
+# 重置所有兼容测试环境（删除所有 named volume 与容器）
 #
 
 set -e
@@ -14,7 +14,12 @@ if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
   exit 0
 fi
 
-docker compose down -v
-docker compose up -d
+for container in openclaw-2026-4-23 openclaw-2026-4-24 openclaw-latest hermes-latest; do
+  docker rm -f "$container" 2>/dev/null || true
+done
 
-echo "==> All environments reset. Run onboard + deploy scripts for each OpenClaw instance."
+for vol in compat-testing_oc-2026-4-23-data compat-testing_oc-2026-4-24-data compat-testing_oc-latest-data hermes-latest-data; do
+  docker volume rm "$vol" 2>/dev/null || true
+done
+
+echo "==> All environments reset. Run start-container.sh + deploy-zk-to-container.sh for each OpenClaw instance."

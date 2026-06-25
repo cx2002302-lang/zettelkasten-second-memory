@@ -19,17 +19,17 @@
 
 ### OpenClaw
 
-| 版本 | 容器名 | zk doctor | plugin list | alsoAllow | skills | systemPromptOverride | zk_search_notes | zk_create_note | zk_get_note | 结果 |
-|------|--------|-----------|-------------|-----------|--------|----------------------|-----------------|----------------|-------------|------|
+| 版本 | 容器名 | zk doctor | plugin list | alsoAllow | skills | systemPromptOverride | zk_search | zk_new | zk_show | 结果 |
+|------|--------|-----------|-------------|-----------|--------|----------------------|-----------|--------|---------|------|
 | `2026.4.23` | `openclaw-2026-4-23` | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | PASS/FAIL |
 | `2026.4.24` | `openclaw-2026-4-24` | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | PASS/FAIL |
-| `latest` | `openclaw-latest` | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | PASS/FAIL |
+| `latest` | `openclaw-latest` | ✅/❌ | ✅/❌ | ✅/❌ | ✅/❌ | ✅/⚠️/❌ | ✅/❌ | ✅/❌ | ✅/❌ | PASS/FAIL |
 
 ### Hermes
 
-| 版本 | 容器名 | 启动 | 版本号 | 工具发现 | zk_search_notes | 备注 |
-|------|--------|------|--------|----------|-----------------|------|
-| `latest` | `hermes-latest` | ✅/❌ | | ✅/❌/N/A | ✅/❌/N/A | |
+| 版本 | 容器名 | 启动 | 版本号 | 备注 |
+|------|--------|------|--------|------|
+| `latest` | `hermes-latest` | ✅/❌ | | 探测 only |
 
 ---
 
@@ -40,7 +40,7 @@
 #### 3.1 插件加载
 
 ```text
-# docker exec openclaw-2026-4-24 openclaw plugin list
+# docker exec openclaw-2026-4-24 openclaw plugins list
 ```
 
 #### 3.2 zk doctor
@@ -49,18 +49,20 @@
 # docker exec openclaw-2026-4-24 openclaw zk doctor
 ```
 
-#### 3.3 工具调用
+#### 3.3 zk 命令测试
 
 ```text
-# zk_search_notes
+# docker exec openclaw-2026-4-24 openclaw zk search compat --limit 5
+# docker exec openclaw-2026-4-24 openclaw zk new --title "..." --content "..." --tags compat-test --source manual --confidence 0.9
+# docker exec openclaw-2026-4-24 openclaw zk show <id>
 ```
 
 #### 3.4 配置检查
 
 ```json
 {
-  "tools.alsoAllow": [],
-  "agents.defaults.skills": [],
+  "tools.alsoAllow": ["zettelkasten"],
+  "agents.defaults.skills": ["zettelkasten-brain"],
   "agents.defaults.systemPromptOverride": "..."
 }
 ```

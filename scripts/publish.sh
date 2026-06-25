@@ -77,21 +77,17 @@ fi
 # 4.1 清理发布文档中的内部信息
 log_info "[3.1/6] 清理文档中的内部信息..."
 
-# AGENTS.md：移除 Hermes 测试环境命令块（发布包不含这些脚本）
-if [ -f "$RELEASE_DIR/AGENTS.md" ]; then
-  sed -i '/^# Hermes Agent 接入（测试环境）$/,/^```$/d' "$RELEASE_DIR/AGENTS.md"
-fi
-
-# COMPATIBILITY.md：泛化内部路径与容器名，移除 MiniMax 真实 LLM 测试
+# AGENTS.md / COMPATIBILITY.md：泛化内部路径与容器名，移除 MiniMax 真实 LLM 测试
 sed -i \
   -e 's|hermes-latest|<hermes-container>|g' \
   -e 's|openclaw-latest|<openclaw-container>|g' \
   -e 's|/home/myxia/.openclaw/project/zettelkasten-secrets/minimax.env|<minimax-env-file>|g' \
   -e 's|environments/compat-testing/scripts/|<test-env>/scripts/|g' \
-  "$RELEASE_DIR/docs/COMPATIBILITY.md" 2>/dev/null || true
+  "$RELEASE_DIR/AGENTS.md" "$RELEASE_DIR/docs/COMPATIBILITY.md" 2>/dev/null || true
 
 # 用 Python 精确删除 MiniMax E2E 命令块
-python3 - "$RELEASE_DIR/docs/COMPATIBILITY.md" <<'PY'
+for doc in "$RELEASE_DIR/AGENTS.md" "$RELEASE_DIR/docs/COMPATIBILITY.md"; do
+  python3 - "$doc" <<'PY'
 import sys
 path = sys.argv[1]
 with open(path, 'r', encoding='utf-8') as f:
@@ -99,10 +95,10 @@ with open(path, 'r', encoding='utf-8') as f:
 out = []
 skip = False
 for line in lines:
-    if line.startswith('# 4. Hermes + MiniMax'):
+    if line.startswith('# 4. Hermes + MiniMax') or line.startswith('# Hermes + Zettelkasten 真实 LLM 端到端测试（MiniMax）'):
         skip = True
         continue
-    if skip and '<minimax-env-file>' in line:
+    if skip and ('<minimax-env-file>' in line or not line.strip() or line.startswith('#')):
         skip = False
         continue
     if not skip:
@@ -110,6 +106,7 @@ for line in lines:
 with open(path, 'w', encoding='utf-8') as f:
     f.writelines(out)
 PY
+done
 
 # 5. 复制脚本
 log_info "[4/6] 复制脚本..."

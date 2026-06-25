@@ -4,12 +4,13 @@
 
 # 🧠 Zettelkasten Second Memory
 
-> **An [OpenClaw](https://github.com/openclaw) plugin** that turns AI conversations into a permanent Zettelkasten knowledge base — atomic notes, bi-directional links, knowledge distillation, and intelligent retrieval.
+> **An [OpenClaw](https://github.com/openclaw) (2026.4/2026.6+) and [Hermes Agent](https://github.com/nousresearch/hermes-agent) plugin** that turns AI conversations into a permanent Zettelkasten knowledge base — atomic notes, bi-directional links, knowledge distillation, and intelligent retrieval via MCP tools.
 
 [English](README.md) · [简体中文](README.zh.md)
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-beta.8-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.0-beta.8.1-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24/2026.6.x-green.svg)](https://github.com/openclaw)
+[![Hermes](https://img.shields.io/badge/Hermes%20Agent-v0.17.0-blueviolet.svg)](https://github.com/nousresearch/hermes-agent)
 [![MCP Server](https://img.shields.io/badge/MCP-34%20Tools-orange.svg)](src/mcp/server.ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.14.0-blue.svg)](package.json)
@@ -20,12 +21,13 @@
 
 | Component | Version | Status |
 |-----------|---------|--------|
-| Plugin | `v1.0.0-beta.8` | Active development |
+| Plugin | `v1.0.0-beta.8.1` | Active development |
 | Skill | `v1.0.0-beta.3` | Active development |
-| OpenClaw | `2026.4.24/2026.6.x` | Developed & tested on 2026.4.24/2026.6.x; compatible with >= 2026.4.23 |
+| OpenClaw | `2026.4.24/2026.6.x` | Developed & tested; compatible with >= 2026.4.23 |
+| Hermes Agent | `v0.17.0` | Experimental support via MCP HTTP bridge |
 | Node.js | `>= 22.14.0` | Required (for `node:sqlite`) |
 
-**Latest Release**: [v1.0.0-beta.8](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.8) — Compatibility adaptation for OpenClaw 2026.6.x and Hermes MCP bridge
+**Latest Release**: [v1.0.0-beta.8.1](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.8.1) — Compatibility adaptation for OpenClaw 2026.6.x and Hermes MCP bridge
 
 ---
 
@@ -36,7 +38,7 @@
 | 📝 **Atomic Notes** | Each note is an independent knowledge unit, supporting `atomic` / `structure` / `source` types |
 | 🔗 **Bi-directional Links** | 11 semantic link types (supports, refines, extends, contradicts, example-of...) to build a true knowledge graph |
 | 🔍 **Full-text Search** | SQLite FTS5 + LIKE dual engine, supporting Chinese tokenization and fuzzy matching |
-| 🤖 **AI Integration** | Deep MCP integration with OpenClaw, enabling AI agents to automatically capture conversation knowledge |
+| 🤖 **AI Integration** | Deep MCP integration with OpenClaw and Hermes Agent, enabling AI agents to automatically capture conversation knowledge |
 | 🔄 **Knowledge Distillation** | CEQRC pipeline automatically refines fragmented notes into permanent knowledge |
 | 🏷️ **Tag System** | Flexible tag classification and statistics, supporting tag-cloud analysis |
 | 📦 **Markdown Native** | All notes stored as Markdown, your data belongs entirely to you |
@@ -45,27 +47,15 @@
 | 📦 **Archive System** | Move cold notes to `archive` folder; auto-archive nightly at 2:00 AM |
 | 📜 **Audit Log** | Full archive/unarchive history with `zk_get_archive_log` |
 | 🔎 **Path Discovery** | Weighted shortest path between any two notes with Chinese explanations |
+| 🌉 **Hermes Bridge** | Optional Streamable HTTP MCP bridge exposes all tools to Hermes Agent (v0.17.0+) |
 
 ---
 
 ## ⚡ Performance Benchmark
 
-<p align="center">
-  <img src="docs/assets/performance-benchmark-infographic-EN.png" alt="Performance Benchmark" width="100%">
-</p>
-
-**Tested on**: Node.js v22.22.2, SQLite `:memory:`, 2026-05-12  
-**Scale**: 10,000 notes, 30,000 links | **All 7 thresholds passed** ✅  
-**Full report**: [`plans/PERFORMANCE-BENCHMARK.md`](plans/PERFORMANCE-BENCHMARK.md)
-
-| Operation | 1K Notes | 5K Notes | 10K Notes | Threshold |
-|-----------|----------|----------|-----------|-----------|
-| FTS Search | 2.8ms | 1.8ms | **1.9ms** | < 100ms ✅ |
-| Single Note Read | 0.24ms | 0.08ms | **0.08ms** | < 10ms ✅ |
-| Glow Recalculation | 161ms | 521ms | **1,013ms** | < 5s ✅ |
-| Knowledge Graph | 3.8ms | 3.8ms | **5.5ms** | < 500ms ✅ |
-| Heatmap | 5.7ms | 14.9ms | **30.0ms** | < 200ms ✅ |
-| Path Find | 0.66ms | 0.28ms | **0.20ms** | < 500ms ✅ |
+**Tested on**: Node.js v22.22.2, SQLite `:memory:`  
+**Scale**: 1,000 notes creation and search | **All tests passed** ✅  
+**Current suite**: 1,724 unit / integration tests with Vitest
 
 ---
 
@@ -76,32 +66,31 @@
 ## 📐 System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    OpenClaw Gateway                      │
-│                  (MCP Protocol Layer)                    │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────┐
-│              Zettelkasten Plugin                         │
-│  ┌─────────┐  ┌──────────┐  ┌─────────────┐            │
-│  │  MCP    │  │   CLI    │  │  Session    │            │
-│  │ Tools   │  │ Commands │  │   Hook      │            │
-│  └────┬────┘  └────┬─────┘  └──────┬──────┘            │
-│       └─────────────┴───────────────┘                   │
-│                         │                                │
-│  ┌──────────┬───────────┼───────────┬──────────┐        │
-│  │ Service  │ Repository│  Storage  │  Core    │        │
-│  │ Layer    │  Layer    │  Layer    │  Types   │        │
-│  │          │           │           │          │        │
-│  │• Note    │• NoteRepo │• DB Schema│• Types   │        │
-│  │• Link    │• LinkRepo │• FTS5     │• Constants│       │
-│  │• CEQRC   │• TagRepo  │• Templates│• Utils   │        │
-│  │• Distill │• ReviewRepo│          │          │        │
-│  └──────────┴───────────┴───────────┴──────────┘        │
-│                         │                                │
-│                    SQLite + Markdown                     │
-└─────────────────────────────────────────────────────────┘
-```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         OpenClaw Gateway                             │
+│                      (MCP Protocol Layer)                            │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │
+┌──────────────────────────┼──────────────────────────────────────────┐
+│                          │                                          │
+│  ┌───────────────────────▼────────┐  ┌──────────────────────────┐  │
+│  │      Hermes Agent (optional)   │  │   Zettelkasten Plugin    │  │
+│  │   via Streamable HTTP MCP      │  │                          │  │
+│  └──────────────┬─────────────────┘  │  ┌─────────┐  ┌────────┐ │  │
+│                 │                    │  │  MCP    │  │  CLI   │ │  │
+│                 └────────────────────┼──┤ Tools   │  │Commands│ │  │
+│                                      │  └────┬────┘  └───┬────┘ │  │
+│                                      │       └─────────────┘      │  │
+│                                      │              │              │  │
+│                                      │  ┌──────────┬───────────┐  │  │
+│                                      │  │ Service  │ Repository│  │  │
+│                                      │  │ Storage  │   Core    │  │  │
+│                                      │  └──────────┴───────────┘  │  │
+│                                      │              │              │  │
+│                                      │        SQLite + Markdown    │  │
+│                                      └──────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+
 
 ---
 
@@ -114,7 +103,8 @@
 ### Requirements
 
 - **Node.js** >= 22.14.0 (requires built-in `node:sqlite`)
-- **OpenClaw** `2026.4.24/2026.6.x` (developed & tested on this version; compatible with >= 2026.4.23)
+- **OpenClaw** `2026.4.24/2026.6.x` (compatible with >= 2026.4.23)
+- **Hermes Agent** `v0.17.0+` (optional, for Hermes integration)
 
 ### Installation
 
@@ -148,6 +138,31 @@ openclaw zk init
 # 5. Health check
 openclaw zk doctor
 ```
+
+### Use with Hermes Agent (Optional)
+
+```bash
+# 1. Build the MCP bridge
+npm run build:bridge
+
+# 2. Start the bridge (adjust DB/notes paths to your OpenClaw setup)
+ZETTELKASTEN_DB_PATH=~/.openclaw/zettelkasten/zettelkasten.db \
+ZETTELKASTEN_NOTES_DIR=~/.openclaw/zettelkasten/notes \
+ZETTELKASTEN_MCP_PORT=9090 \
+node dist/mcp/http-bridge.js
+
+# 3. In your Hermes config, add the MCP server:
+# mcp_servers:
+#   zettelkasten:
+#     type: http
+#     url: "http://<openclaw-host>:9090/mcp"
+#     enabled: true
+
+# 4. Verify connectivity
+hermes mcp test zettelkasten
+```
+
+See [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) for version-specific notes.
 
 ### Use as a Standalone Library
 

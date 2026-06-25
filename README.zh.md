@@ -4,12 +4,13 @@
 
 # 🧠 Zettelkasten Second Memory
 
-> **[OpenClaw](https://github.com/openclaw) 插件** —— 将 AI 对话转化为永久 Zettelkasten 知识库：原子化笔记、双向链接、知识蒸馏、智能检索。
+> **[OpenClaw](https://github.com/openclaw)（2026.4/2026.6+）与 [Hermes Agent](https://github.com/nousresearch/hermes-agent) 插件** —— 将 AI 对话转化为永久 Zettelkasten 知识库：原子化笔记、双向链接、知识蒸馏、通过 MCP 工具智能检索。
 
 [English](README.md) · [简体中文](README.zh.md)
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-beta.8-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.0-beta.8.1-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24/2026.6.x-green.svg)](https://github.com/openclaw)
+[![Hermes](https://img.shields.io/badge/Hermes%20Agent-v0.17.0-blueviolet.svg)](https://github.com/nousresearch/hermes-agent)
 [![MCP Server](https://img.shields.io/badge/MCP-34%20Tools-orange.svg)](src/mcp/server.ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.14.0-blue.svg)](package.json)
@@ -20,12 +21,13 @@
 
 | 组件 | 版本 | 状态 |
 |------|------|------|
-| 插件 | `v1.0.0-beta.8` | 活跃开发中 |
+| 插件 | `v1.0.0-beta.8.1` | 活跃开发中 |
 | Skill | `v1.0.0-beta.3` | 活跃开发中 |
-| OpenClaw | `2026.4.24/2026.6.x` | 在 2026.4.24/2026.6.x 上开发测试；兼容 >= 2026.4.23 |
+| OpenClaw | `2026.4.24/2026.6.x` | 开发测试通过；兼容 >= 2026.4.23 |
+| Hermes Agent | `v0.17.0` | 实验性支持，通过 MCP HTTP bridge |
 | Node.js | `>= 22.14.0` | 必需（`node:sqlite`） |
 
-**最新发布**: [v1.0.0-beta.8](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.8) — OpenClaw 2026.6.x 与 Hermes MCP bridge 兼容性适配
+**最新发布**: [v1.0.0-beta.8.1](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.8.1) — OpenClaw 2026.6.x 与 Hermes MCP bridge 兼容性适配
 
 ---
 
@@ -36,7 +38,7 @@
 | 📝 **原子卡片** | 每条笔记都是独立、原子的知识单元，支持 `atomic` / `structure` / `source` 三种类型 |
 | 🔗 **双向链接** | 11 种语义化链接类型（支持、细化、扩展、反驳、示例…），构建真正的知识图谱 |
 | 🔍 **全文搜索** | SQLite FTS5 + LIKE 双引擎，支持中文分词与模糊匹配 |
-| 🤖 **AI 集成** | 通过 MCP 协议与 OpenClaw 深度集成，AI 自动记录对话知识 |
+| 🤖 **AI 集成** | 通过 MCP 协议与 OpenClaw 及 Hermes Agent 深度集成，AI 自动记录对话知识 |
 | 🔄 **知识蒸馏** | CEQRC 流水线自动将碎片笔记提炼为永久知识 |
 | 🏷️ **标签系统** | 灵活的标签分类与统计，支持标签云分析 |
 | 📦 **Markdown 原生** | 所有笔记以 Markdown 存储，数据完全属于你 |
@@ -45,58 +47,45 @@
 | 📦 **归档系统** | 将冷笔记移入 `archive` 文件夹；每日凌晨 2:00 自动归档 |
 | 📜 **审计日志** | 完整的归档/恢复/自动归档操作历史，`zk_get_archive_log` |
 | 🔎 **路径发现** | 任意两条笔记间的带权最短路径，支持中文路径解释 |
+| 🌉 **Hermes 桥接** | 可选 Streamable HTTP MCP bridge，向 Hermes Agent（v0.17.0+）暴露全部工具 |
 
 ---
 
 ## ⚡ 性能基准
 
-<p align="center">
-  <img src="docs/assets/performance-benchmark-infographic-CN.png" alt="性能基准测试" width="100%">
-</p>
-
-**测试环境**: Node.js v22.22.2, SQLite `:memory:`, 2026-05-12  
-**测试规模**: 10,000 笔记, 30,000 链接 | **全部 7 项阈值通过** ✅  
-**详细报告**: [`plans/PERFORMANCE-BENCHMARK.md`](plans/PERFORMANCE-BENCHMARK.md)
-
-| 操作 | 1K 笔记 | 5K 笔记 | 10K 笔记 | 阈值 |
-|------|---------|---------|----------|------|
-| FTS 全文搜索 | 2.8ms | 1.8ms | **1.9ms** | < 100ms ✅ |
-| 单条读取 | 0.24ms | 0.08ms | **0.08ms** | < 10ms ✅ |
-| 发光度重计算 | 161ms | 521ms | **1,013ms** | < 5s ✅ |
-| 知识图谱 | 3.8ms | 3.8ms | **5.5ms** | < 500ms ✅ |
-| 热力图 | 5.7ms | 14.9ms | **30.0ms** | < 200ms ✅ |
-| 路径查找 | 0.66ms | 0.28ms | **0.20ms** | < 500ms ✅ |
+**测试环境**: Node.js v22.22.2, SQLite `:memory:`  
+**测试规模**: 1,000 笔记创建与搜索 | **全部测试通过** ✅  
+**当前测试套件**: 1,724 个单元 / 集成测试（Vitest）
 
 ---
 
 ## 📐 系统架构
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    OpenClaw Gateway                      │
-│                  (MCP Protocol Layer)                    │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────┐
-│              Zettelkasten Plugin                         │
-│  ┌─────────┐  ┌──────────┐  ┌─────────────┐            │
-│  │  MCP    │  │   CLI    │  │  Session    │            │
-│  │ Tools   │  │ Commands │  │   Hook      │            │
-│  └────┬────┘  └────┬─────┘  └──────┬──────┘            │
-│       └─────────────┴───────────────┘                   │
-│                         │                                │
-│  ┌──────────┬───────────┼───────────┬──────────┐        │
-│  │ Service  │ Repository│  Storage  │  Core    │        │
-│  │ Layer    │  Layer    │  Layer    │  Types   │        │
-│  │          │           │           │          │        │
-│  │• Note    │• NoteRepo │• DB Schema│• Types   │        │
-│  │• Link    │• LinkRepo │• FTS5     │• Constants│       │
-│  │• CEQRC   │• TagRepo  │• Templates│• Utils   │        │
-│  │• Distill │• ReviewRepo│          │          │        │
-│  └──────────┴───────────┴───────────┴──────────┘        │
-│                         │                                │
-│                    SQLite + Markdown                     │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         OpenClaw Gateway                             │
+│                      (MCP Protocol Layer)                            │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │
+┌──────────────────────────┼──────────────────────────────────────────┐
+│                          │                                          │
+│  ┌───────────────────────▼────────┐  ┌──────────────────────────┐  │
+│  │      Hermes Agent（可选）       │  │   Zettelkasten Plugin    │  │
+│  │   通过 Streamable HTTP MCP     │  │                          │  │
+│  └──────────────┬─────────────────┘  │  ┌─────────┐  ┌────────┐ │  │
+│                 │                    │  │  MCP    │  │  CLI   │ │  │
+│                 └────────────────────┼──┤ Tools   │  │Commands│ │  │
+│                                      │  └────┬────┘  └───┬────┘ │  │
+│                                      │       └─────────────┘      │  │
+│                                      │              │              │  │
+│                                      │  ┌──────────┬───────────┐  │  │
+│                                      │  │ Service  │ Repository│  │  │
+│                                      │  │ Storage  │   Core    │  │  │
+│                                      │  └──────────┴───────────┘  │  │
+│                                      │              │              │  │
+│                                      │        SQLite + Markdown    │  │
+│                                      └──────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -106,7 +95,8 @@
 ### 环境要求
 
 - **Node.js** >= 22.14.0（需要内置 `node:sqlite`）
-- **OpenClaw** >= 2026.4.23（如需 AI 集成）
+- **OpenClaw** `2026.4.24/2026.6.x`（兼容 >= 2026.4.23）
+- **Hermes Agent** `v0.17.0+`（可选，用于 Hermes 集成）
 
 ### 安装
 
@@ -140,6 +130,31 @@ openclaw zk init
 # 5. 健康检查
 openclaw zk doctor
 ```
+
+### 与 Hermes Agent 集成（可选）
+
+```bash
+# 1. 构建 MCP bridge
+npm run build:bridge
+
+# 2. 启动 bridge（根据你的 OpenClaw 环境调整 DB/notes 路径）
+ZETTELKASTEN_DB_PATH=~/.openclaw/zettelkasten/zettelkasten.db \
+ZETTELKASTEN_NOTES_DIR=~/.openclaw/zettelkasten/notes \
+ZETTELKASTEN_MCP_PORT=9090 \
+node dist/mcp/http-bridge.js
+
+# 3. 在 Hermes 配置中添加 MCP 服务器：
+# mcp_servers:
+#   zettelkasten:
+#     type: http
+#     url: "http://<openclaw-host>:9090/mcp"
+#     enabled: true
+
+# 4. 验证连通性
+hermes mcp test zettelkasten
+```
+
+版本兼容性细节请参见 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)。
 
 ### 作为独立库使用
 

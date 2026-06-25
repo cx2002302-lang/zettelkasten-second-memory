@@ -28,6 +28,7 @@ import type {
 import { writeFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { createTestDir, cleanupTestDir } from "../testing/test-fs.js";
 
 // ============================================================================
 // 测试工具
@@ -131,11 +132,14 @@ describe("E2E Scenario 1: Note Lifecycle", () => {
   let linkService: LinkService;
   let archiveService: ArchiveService;
   let noteRepo: NoteRepository;
-  const basePath = "/test/notes";
+  let tempDir: string;
+  let basePath: string;
 
   beforeEach(() => {
     db = new DatabaseSync(":memory:");
     ensureZettelkastenSchema({ db, ftsEnabled: true });
+    tempDir = createTestDir("zk-e2e-");
+    basePath = `${tempDir}/notes`;
     noteService = new NoteService(db, basePath);
     linkService = new LinkService(db);
     archiveService = new ArchiveService(db);
@@ -144,6 +148,7 @@ describe("E2E Scenario 1: Note Lifecycle", () => {
 
   afterEach(() => {
     db.close();
+    cleanupTestDir(tempDir);
   });
 
   it("should complete the full note lifecycle from inbox to archive", async () => {
@@ -270,11 +275,14 @@ describe("E2E Scenario 2: Phase 6 Knowledge Network Enhancement", () => {
   let serendipityService: SerendipityService;
   let mocService: MOCService;
   let glowCalculator: GlowCalculator;
-  const basePath = "/test/notes";
+  let tempDir: string;
+  let basePath: string;
 
   beforeEach(() => {
     db = new DatabaseSync(":memory:");
     ensureZettelkastenSchema({ db, ftsEnabled: true });
+    tempDir = createTestDir("zk-e2e-");
+    basePath = `${tempDir}/notes`;
     noteService = new NoteService(db, basePath);
     linkService = new LinkService(db);
     auditService = new KnowledgeAuditService(db);
@@ -288,6 +296,7 @@ describe("E2E Scenario 2: Phase 6 Knowledge Network Enhancement", () => {
 
   afterEach(() => {
     db.close();
+    cleanupTestDir(tempDir);
   });
 
   it("should build knowledge network and run Phase 6 services", async () => {
@@ -461,11 +470,13 @@ describe("E2E Scenario 3: Night Distillation Flow", () => {
   let distillerService: DistillerService;
   let mockLLM: MockLLMProvider;
   let tempDir: string;
-  const basePath = "/test/notes";
+  let basePath: string;
 
   beforeEach(async () => {
     db = new DatabaseSync(":memory:");
     ensureZettelkastenSchema({ db, ftsEnabled: true });
+    tempDir = createTestDir("zk-e2e-");
+    basePath = `${tempDir}/notes`;
     noteService = new NoteService(db, basePath);
     linkService = new LinkService(db);
     mockLLM = new MockLLMProvider();
@@ -475,17 +486,11 @@ describe("E2E Scenario 3: Night Distillation Flow", () => {
       linkService,
       { batchSize: 5 }
     );
-    tempDir = join(tmpdir(), `zk-e2e-distill-${Date.now()}`);
-    await mkdir(tempDir, { recursive: true });
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     db.close();
-    try {
-      await rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // ignore cleanup errors
-    }
+    cleanupTestDir(tempDir);
   });
 
   it("should distill memory file, create notes, and handle deduplication", async () => {

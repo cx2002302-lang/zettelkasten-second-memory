@@ -16,6 +16,7 @@ import { NoteService } from "../service/note-service.js";
 import { LinkService } from "../service/link-service.js";
 import { NoteRepository } from "../repository/note-repository.js";
 import { LinkRepository } from "../repository/link-repository.js";
+import { createTestDir, cleanupTestDir } from "../testing/test-fs.js";
 import type { CreateNoteParams } from "../core/types.js";
 
 function createTestDb(ftsEnabled = false): DatabaseSync {
@@ -30,10 +31,11 @@ describe("Edge Cases", () => {
   let linkService: LinkService;
   let noteRepo: NoteRepository;
   let linkRepo: LinkRepository;
-  const basePath = "/test/edge-cases";
+  let basePath: string;
 
   beforeEach(() => {
     db = createTestDb();
+    basePath = createTestDir("zk-edge-");
     noteService = new NoteService(db, basePath);
     linkService = new LinkService(db);
     noteRepo = new NoteRepository(db);
@@ -42,6 +44,7 @@ describe("Edge Cases", () => {
 
   afterEach(() => {
     db.close();
+    cleanupTestDir(basePath);
   });
 
   // ==========================================================================

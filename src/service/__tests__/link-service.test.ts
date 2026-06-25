@@ -10,6 +10,7 @@ import {
   closeTestDatabase,
   createTestNoteData,
 } from "../../repository/__tests__/test-helpers.js";
+import { createTestDir, cleanupTestDir } from "../../testing/test-fs.js";
 import type { DatabaseSync } from "node:sqlite";
 import type { LinkType } from "../../core/types.js";
 
@@ -29,7 +30,7 @@ describe("LinkService", () => {
   let db: DatabaseSync;
   let linkService: LinkService;
   let noteRepository: NoteRepository;
-  const notesDir = "/test/notes";
+  let notesDir: string;
 
   let mockIdCounter = 0;
 
@@ -37,6 +38,7 @@ describe("LinkService", () => {
     db = createTestDatabase();
     linkService = new LinkService(db);
     noteRepository = new NoteRepository(db);
+    notesDir = createTestDir("zk-link-svc-");
     mockIdCounter = 0;
     vi.spyOn(Math, "random").mockImplementation(() => {
       mockIdCounter++;
@@ -46,6 +48,7 @@ describe("LinkService", () => {
 
   afterEach(() => {
     closeTestDatabase(db);
+    cleanupTestDir(notesDir);
     vi.restoreAllMocks();
   });
 

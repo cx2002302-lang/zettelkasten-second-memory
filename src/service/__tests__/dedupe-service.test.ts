@@ -10,8 +10,9 @@
  * 6. 边界情况处理
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { DedupeService } from "../dedupe-service.js";
+import { createTestDir, cleanupTestDir } from "../../testing/test-fs.js";
 import type {
   LLMProvider,
   DistillSummary,
@@ -77,38 +78,44 @@ function createTestSummary(
   };
 }
 
-/** 创建测试笔记 */
-function createTestNote(
-  id: string,
-  title: string,
-  content: string,
-  confidence: number = 0.8
-): ZettelNote {
-  return {
-    id,
-    title,
-    content,
-    type: "atomic",
-    status: "PERMANENT",
-    folder: "zettels",
-    reviewed: true,
-    tags: [],
-    filePath: `/test/notes/${id}.md`,
-    createdAt: "2026-01-01T10:00:00Z",
-    updatedAt: "2026-01-01T10:00:00Z",
-    links: [],
-    confidence,
-  };
-}
-
 describe("DedupeService", () => {
   let mockProvider: MockLLMProvider;
   let dedupeService: DedupeService;
+  let notesDir: string;
 
   beforeEach(() => {
     mockProvider = new MockLLMProvider();
     dedupeService = new DedupeService(mockProvider);
+    notesDir = createTestDir("zk-dedupe-");
   });
+
+  afterEach(() => {
+    cleanupTestDir(notesDir);
+  });
+
+  /** 创建测试笔记 */
+  function createTestNote(
+    id: string,
+    title: string,
+    content: string,
+    confidence: number = 0.8
+  ): ZettelNote {
+    return {
+      id,
+      title,
+      content,
+      type: "atomic",
+      status: "PERMANENT",
+      folder: "zettels",
+      reviewed: true,
+      tags: [],
+      filePath: `${notesDir}/${id}.md`,
+      createdAt: "2026-01-01T10:00:00Z",
+      updatedAt: "2026-01-01T10:00:00Z",
+      links: [],
+      confidence,
+    };
+  }
 
   // ============================================================================
   // 构造函数和配置测试

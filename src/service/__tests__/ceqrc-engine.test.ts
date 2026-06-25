@@ -9,8 +9,9 @@
  * 5. 工作流结果获取
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { CEQRCEngine } from "../ceqrc-engine.js";
+import { createTestDir, cleanupTestDir } from "../../testing/test-fs.js";
 import type {
   LLMProvider,
   CEQRCPhase,
@@ -61,31 +62,6 @@ class MockLLMProvider implements LLMProvider {
   }
 }
 
-/** 创建模拟笔记 */
-function createMockNotes(count: number): ZettelNote[] {
-  const notes: ZettelNote[] = [];
-  for (let i = 0; i < count; i++) {
-    const id = `20260101120000${i.toString().padStart(2, "0")}`;
-    notes.push({
-      id,
-      title: `Test Note ${i}`,
-      content: `Content of test note ${i}`,
-      type: "atomic",
-      status: "PERMANENT",
-      folder: "zettels",
-      confidence: 0.8,
-      source: "manual",
-      reviewed: true,
-      tags: ["test"],
-      filePath: `/test/notes/${id}.md`,
-      createdAt: "2026-01-01T12:00:00Z",
-      updatedAt: "2026-01-01T12:00:00Z",
-      links: [],
-    });
-  }
-  return notes;
-}
-
 /** 标准阶段输出 */
 const MOCK_CAPTURE_OUTPUT: CaptureOutput = {
   coreConcept: "Test Concept",
@@ -127,11 +103,42 @@ const MOCK_CONNECT_OUTPUT: ConnectOutput = {
 describe("CEQRCEngine", () => {
   let engine: CEQRCEngine;
   let mockProvider: MockLLMProvider;
+  let notesDir: string;
 
   beforeEach(() => {
     mockProvider = new MockLLMProvider();
     engine = new CEQRCEngine(mockProvider);
+    notesDir = createTestDir("zk-ceqrc-");
   });
+
+  afterEach(() => {
+    cleanupTestDir(notesDir);
+  });
+
+  /** 创建模拟笔记 */
+  function createMockNotes(count: number): ZettelNote[] {
+    const notes: ZettelNote[] = [];
+    for (let i = 0; i < count; i++) {
+      const id = `20260101120000${i.toString().padStart(2, "0")}`;
+      notes.push({
+        id,
+        title: `Test Note ${i}`,
+        content: `Content of test note ${i}`,
+        type: "atomic",
+        status: "PERMANENT",
+        folder: "zettels",
+        confidence: 0.8,
+        source: "manual",
+        reviewed: true,
+        tags: ["test"],
+        filePath: `${notesDir}/${id}.md`,
+        createdAt: "2026-01-01T12:00:00Z",
+        updatedAt: "2026-01-01T12:00:00Z",
+        links: [],
+      });
+    }
+    return notes;
+  }
 
   // ============================================================================
   // 工作流创建和管理

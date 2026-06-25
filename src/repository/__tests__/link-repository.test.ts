@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { LinkRepository } from "../link-repository.js";
 import { NoteRepository } from "../note-repository.js";
 import { createTestDatabase, closeTestDatabase, createTestNoteData } from "./test-helpers.js";
+import { createTestDir, cleanupTestDir } from "../../testing/test-fs.js";
 import type { DatabaseSync } from "node:sqlite";
 import type { LinkType } from "../../core/types.js";
 
@@ -13,16 +14,18 @@ describe("LinkRepository", () => {
   let db: DatabaseSync;
   let linkRepository: LinkRepository;
   let noteRepository: NoteRepository;
-  const notesDir = "/test/notes";
+  let notesDir: string;
 
   beforeEach(() => {
     db = createTestDatabase();
     linkRepository = new LinkRepository(db);
     noteRepository = new NoteRepository(db);
+    notesDir = createTestDir("zk-link-repo-");
   });
 
   afterEach(() => {
     closeTestDatabase(db);
+    cleanupTestDir(notesDir);
   });
 
   // Helper to create notes for link testing

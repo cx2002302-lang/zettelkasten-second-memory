@@ -9,21 +9,24 @@ import {
   closeTestDatabase,
   createTestNoteData,
 } from "./test-helpers.js";
+import { createTestDir, cleanupTestDir } from "../../testing/test-fs.js";
 import type { DatabaseSync } from "node:sqlite";
 import type { NoteType, NoteFolder, LinkType } from "../../core/types.js";
 
 describe("NoteRepository", () => {
   let db: DatabaseSync;
   let repository: NoteRepository;
-  const notesDir = "/test/notes";
+  let notesDir: string;
 
   beforeEach(() => {
     db = createTestDatabase();
     repository = new NoteRepository(db);
+    notesDir = createTestDir("zk-note-repo-");
   });
 
   afterEach(() => {
     closeTestDatabase(db);
+    cleanupTestDir(notesDir);
   });
 
   describe("create", () => {

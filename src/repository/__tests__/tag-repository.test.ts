@@ -6,22 +6,25 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { TagRepository } from "../tag-repository.js";
 import { NoteRepository } from "../note-repository.js";
 import { createTestDatabase, closeTestDatabase, createTestNoteData } from "./test-helpers.js";
+import { createTestDir, cleanupTestDir } from "../../testing/test-fs.js";
 import type { DatabaseSync } from "node:sqlite";
 
 describe("TagRepository", () => {
   let db: DatabaseSync;
   let tagRepository: TagRepository;
   let noteRepository: NoteRepository;
-  const notesDir = "/test/notes";
+  let notesDir: string;
 
   beforeEach(() => {
     db = createTestDatabase();
     tagRepository = new TagRepository(db);
     noteRepository = new NoteRepository(db);
+    notesDir = createTestDir("zk-tag-repo-");
   });
 
   afterEach(() => {
     closeTestDatabase(db);
+    cleanupTestDir(notesDir);
   });
 
   describe("ensureTag", () => {

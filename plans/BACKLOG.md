@@ -30,19 +30,19 @@
 
 ---
 
-## 🧠 三、Phase 5 人机共生（代码已写但未接入系统）
+## 🧠 三、Phase 5/6 人机共生与系统调优
 
 来源: `src/PHASE5-COMPLETION.md`, `src/PHASE5-IMPLEMENTATION-SUMMARY.md`
 
-> ⚠️ **核心问题**: `ReviewService`, `SampleCurationService`, `FeedbackService` 等代码已存在（245~303行），但 `plugin/index.ts` **完全没有引用它们**，也没有暴露为 MCP 工具或 CLI 命令。
+> ✅ **当前状态**: Phase 5/6 服务已通过 MCP 工具与 CLI 命令接入系统。
 
 | # | 功能 | 状态 | 说明 |
 |---|------|------|------|
-| 3.1 | **ReviewService 完整审核面板** | ⏳ 未接入 | 10个公共方法（批量审核、自动审核、统计、历史查询等），但 plugin 未实例化；`zk_review_note` 用的是 `noteService.reviewNote()` 简化版 |
-| 3.2 | **SampleCurationService 样本策划** | ⏳ 未接入 | 高质量样本筛选、导出、回流功能；无 MCP/CLI 入口 |
-| 3.3 | **FeedbackService 人机反馈闭环** | ⏳ 未接入 | 反馈记录、趋势分析、系统调优建议生成 |
-| 3.4 | **PromptVersion / PromptEvolution** | ⏳ 未接入 | 提示词版本管理、自动进化、A/B 测试 |
-| 3.5 | **SystemTuning** | ⏳ 未接入 | 基于反馈动态调整系统参数（sensitivity, search_depth, link_threshold 等） |
+| 3.1 | **ReviewService 完整审核面板** | ✅ 已接入 | MCP: `zk_review_note`, `zk_get_review_panel`, `zk_get_review_stats`, `zk_submit_review`；CLI: `openclaw zk review-stats` / `review-pending` |
+| 3.2 | **SampleCurationService 样本策划** | ✅ 已接入 | MCP: `zk_get_curation_stats`, `zk_export_samples` |
+| 3.3 | **FeedbackService 人机反馈闭环** | ✅ 已接入 | MCP: `zk_submit_feedback`, `zk_get_feedback_stats`, `zk_analyze_feedback_trends` |
+| 3.4 | **PromptVersion / PromptEvolution** | ✅ 已接入 | MCP: `zk_get_active_prompt`, `zk_get_prompt_stats` |
+| 3.5 | **SystemTuning** | ✅ 已接入 | 内部由反馈服务调用，支持 sensitivity/search_depth/link_threshold 调优 |
 
 ---
 
@@ -82,10 +82,12 @@
 | 6.1 | **功能开关系统** | ⏳ 未设计 | 用户可按需启用/禁用模块；这是 Wave 4 之前需要夯实的核心工程能力 |
 | 6.2 | **审核面板手动/自动模式** | ⏳ 未设计 | `reviewMode: "manual" | "auto"`；auto 模式下 AI 生成笔记后自动审核通过，manual 模式下留在 inbox 等待人工审核 |
 | 6.3 | **一键安装/部署** | ⏳ 未设计 | 用户通过 OpenClaw Agent 对话即可完成插件+Skill 的下载、配置、部署、重启全流程；类似 `npx zettelkasten-plugin install` |
-| 6.2 | **配置文档** | ⏳ 不完整 | `openclaw.json` 中插件配置的完整说明缺失 |
-| 6.3 | **README 演示图/GIF** | ⏳ 未做 | 有静态信息图，但缺少 CLI 运行效果的动态演示 |
-| 6.4 | **错误处理与边界 case** | 🟡 P2 | 部分服务缺少输入校验和异常处理 |
-| 6.5 | ~~性能基准测试~~ | ✅ 已修复 | 10K 笔记全部通过阈值；报告见 `plans/PERFORMANCE-BENCHMARK.md` |
+| 6.4 | **配置文档** | ⏳ 不完整 | `openclaw.json` 中插件配置的完整说明缺失 |
+| 6.5 | **README 演示图/GIF** | ⏳ 未做 | 有静态信息图，但缺少 CLI 运行效果的动态演示 |
+| 6.6 | ~~错误处理与边界 case~~ | ✅ 已完成 | 核心服务已添加输入校验和异常处理 |
+| 6.7 | ~~OpenClaw 2026.6.x 兼容~~ | ✅ 已完成 | `contracts.tools` + `scripts/lib/compat.sh` |
+| 6.8 | ~~Hermes Agent 支持~~ | ✅ 已完成 | `src/mcp/http-bridge.ts` + E2E 验证 |
+| 6.9 | ~~性能基准测试~~ | ✅ 已修复 | 旧 10K 笔记阈值测试已通过；性能信息图已移除 |
 
 ---
 
@@ -93,12 +95,12 @@
 
 **P0（必须先做）**:
 - 6.1 功能开关系统设计 — 为后续解耦和模块化打基础
-- ~~5.1 ~ 5.4 修复测试失败 + 补全核心服务测试~~ ✅ 已完成（667 tests, 0 failures）
+- ~~5.1 ~ 5.4 修复测试失败 + 补全核心服务测试~~ ✅ 已完成（1724 tests, 0 failures）
 
 **P1（夯实现有内容）**:
 - ~~5.6 ~ 5.9 补全测试覆盖~~ ✅ 已完成
-- 5.7 ~ 5.9 补全测试覆盖
-- 6.4 输入校验和异常处理
+- ~~5.7 ~ 5.9 补全测试覆盖~~ ✅ 已完成
+- ~~6.4 输入校验和异常处理~~ ✅ 已完成
 - 6.2 配置文档
 
 **P2（可选延后）**:
@@ -123,16 +125,16 @@
 
 ---
 
-## 🏗️ 当前阶段：夯实现有内容（Wave 3 收尾）
+## 🏗️ 当前阶段：兼容性保障与发布打磨（Wave 3 收尾 → Wave 4 准备）
 
-**目标**: 在启动 Wave 4 之前，确保已发布功能 100% 稳定，测试全部通过，文档完整。
+**目标**: 已发布 v1.0.0-beta.8.1；确保 OpenClaw 2026.4/2026.6+ 与 Hermes Agent 兼容性稳定，文档无死链。
 
 **验收标准**:
-- [ ] 所有单元测试通过（0 失败）
-- [ ] 核心服务测试覆盖 >= 80%
-- [ ] Agent E2E 测试全部通过
-- [ ] 已知 bug 全部修复
+- [x] 所有单元测试通过（0 失败）
+- [x] OpenClaw 2026.4.24 / 2026.6.x 部署验证通过
+- [x] Hermes v0.17.0 MCP/E2E 验证通过
+- [x] README/AGENTS/COMPATIBILITY 无死链、无过期命令
 - [ ] 配置文档完整
 - [ ] README 有演示截图/GIF
 
-*Last updated: 2026-05-11*
+*Last updated: 2026-06-25*

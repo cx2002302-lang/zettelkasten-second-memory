@@ -1,16 +1,17 @@
 # Zettelkasten Project — 当前进度
 
-> 最后更新: 2026-05-12  
-> 当前版本: v1.0.0-beta.4 (已推送到 GitHub)  
-> 测试状态: 689 tests, 0 failures, 26 files
+> 最后更新: 2026-06-25  
+> 当前版本: v1.0.0-beta.8.1 (已推送到 GitHub)  
+> 测试状态: 1724 tests, 0 failures, 72 test files
 
 ---
 
 ## 系统信息
 
-- **OpenClaw 版本**: 2026.4.24
-- **插件版本**: v1.0.0-beta.4
-- **Skill 版本**: 1.0.0-beta.2
+- **OpenClaw 版本**: 2026.4.24 / 2026.6.x（兼容 >= 2026.4.23）
+- **Hermes Agent**: v0.17.0+（实验性支持）
+- **插件版本**: v1.0.0-beta.8.1
+- **Skill 版本**: v1.0.0-beta.3
 - **Node 要求**: >= 22.14.0
 - **当前环境 Node**: v22.22.2
 
@@ -69,41 +70,71 @@
 
 ---
 
+
+---
+
+## 本次会话已完成工作（2026-06-25）
+
+### 1. OpenClaw 2026.6.x 兼容
+- 在 `src/plugin/openclaw.plugin.json` 中声明 `contracts.tools` 工具契约
+- 新增 `scripts/lib/compat.sh` 统一版本判断（`oc_version_ge`、`oc_tool_policy_value`）
+- 重构 `deploy.sh`、`setup-skill-prompt.sh`、容器部署脚本，自动适配 2026.4.x / 2026.6.x+
+- `setup-skill-prompt.sh` 在 >= 2026.6.x 时跳过已废弃的 `systemPromptOverride`
+
+### 2. Hermes Agent 支持
+- 新增 `src/mcp/http-bridge.ts`，使用有状态 `StreamableHTTPServerTransport`
+- Hermes v0.17.0 已通过 mock / MiniMax 真实 LLM E2E 验证
+- 修复 Hermes 配置写入路径为 `/opt/data/config.yaml`
+- README/AGENTS/COMPATIBILITY 增加 Hermes 接入说明
+
+### 3. 测试与稳定性
+- 修复测试硬编码 `/test` 路径，统一使用 `src/testing/test-fs.ts` 临时目录
+- 当前测试套件：**1724 tests, 0 failures, 72 test files**
+- 新增 `scripts/run-compat-matrix.sh` 本地兼容性矩阵一键验证
+
+### 4. 文档与发布包清理
+- 校对 README.md / README.zh.md / AGENTS.md / docs/COMPATIBILITY.md
+- 将 ASCII 系统架构图替换为 Mermaid 图
+- 修正 Skill 安装路径为 `skills/brain`
+- 从发布包移除 `CHANGELOG.md`、`DEVELOPMENT.md`、`docs/TESTING_GUIDE.md`、`src/PHASE*.md`、`src/INTEGRATION.md`，避免内部路径和死链
+- GitHub 仓库 About/Topics 已更新，突出 OpenClaw 2026.6.x 与 Hermes 支持
+
+### 5. GitHub 发布
+- 提交并推送 `zettelkasten-github/main` 到 `60d73f5`
+- 当前 Tag: `v1.0.0-beta.8.1`（待打 tag）
+
 ## 项目当前全景（BACKLOG 简化）
 
 | 优先级 | 事项 | 状态 |
 |--------|------|------|
-| **P0** | 功能开关系统设计 | ⏳ 未开始 |
+| **P0** | OpenClaw 2026.6.x 兼容 | ✅ 已完成 |
+| **P0** | Hermes Agent 接入验证 | ✅ 已完成 |
 | **P0** | 修复测试失败 + 补全核心测试 | ✅ 已完成 |
 | **P1** | 输入校验和异常处理 | ✅ 已完成 |
-| **P1** | 性能基准测试 | ✅ 已完成 |
+| **P1** | 性能基准测试 | ✅ 已完成（后续改用新基准） |
 | **P1** | heatmap 边界测试 | ✅ 已完成 |
-| **P2** | Phase 5 代码接入 plugin（MCP/CLI）| ⏳ 未开始 |
+| **P2** | Phase 5/6 工具接入与文档同步 | ✅ 已完成 |
 | **P2** | CLI E2E 测试 | ⏳ 可选，ROI 低 |
-| **P3** | MemoryHostBridge / SessionBridge | ⏳ 未来 |
+| **P3** | 功能开关系统 | ⏳ 未来 |
 | **P3** | 语义搜索（sqlite-vec）| ⏳ 未来 |
 
 ---
 
 ## 下一步建议（按优先级）
 
-### 选项 A: P0 功能开关系统（推荐）
-为 Wave 4 打基础。设计模块化启用/禁用机制：
+### 选项 A: 发布 v1.0.0-beta.9 / v1.0.0 正式版准备
+- 打 tag `v1.0.0-beta.8.1` 并生成 Release Notes
+- 补充自动化 GitHub Actions 运行兼容性矩阵
+- 整理并归档剩余内部 `plans/` 文档
+
+### 选项 B: 功能开关系统
+为后续 Wave 打基础，设计模块化启用/禁用机制：
 - 每个模块（笔记、链接、归档、审核、反馈等）可独立开关
 - 配置字段：`modules: { notes: true, links: true, archive: false, ... }`
 - 减少资源占用、降低学习成本
 
-### 选项 B: P2 Phase 5 接上线
-让审核面板、反馈闭环、提示词进化真正暴露为 MCP 工具：
-- `plugin/index.ts` 当前完全没有引用 ReviewService / FeedbackService / SampleCurationService / PromptEvolutionService
-- 需要新增 MCP 工具注册（10+ 个 Phase 5 工具）
-- 需要新增 CLI 命令
-
 ### 选项 C: 优化发光度重计算
-性能基准发现这是唯一瓶颈（10K 笔记 1s）：
-- 改为增量更新（只计算变更的笔记）
-- 或异步后台任务
-- `autoArchiveZombies()` 同样受益
+当前 10K 笔记约 1s，可改为增量更新或异步后台任务，`autoArchiveZombies()` 同样受益
 
 ---
 
@@ -111,22 +142,23 @@
 
 ```
 .
-├── src/                           # 插件源码（当前工作目录）
+├── src/                           # 插件源码
 │   ├── plugin/index.ts            # 插件入口（含 MCP 工具 + CLI）
 │   ├── service/                   # 业务逻辑
 │   ├── repository/                # 数据访问
-│   ├── storage/db-schema.ts       # 数据库 Schema（11 张表）
-│   ├── skills/brain/              # AI Skill
+│   ├── storage/db-schema.ts       # 数据库 Schema
+│   ├── mcp/                       # MCP 工具与 HTTP bridge
+│   ├── integration/               # OpenClaw 集成
+│   ├── examples/                  # 使用示例
 │   └── core/                      # 类型定义
-├── zettelkasten-github/           # GitHub 仓库副本（已推送 beta.4）
-│   ├── docs/assets/               # 信息图（主图 + 性能 CN/EN）
-│   ├── plans/PERFORMANCE-BENCHMARK.md
-│   ├── scripts/benchmark.mjs
-│   ├── scripts/e2e-tool-test.mjs
-│   └── README.md / README.zh.md / CHANGELOG.md
-├── skills/brain/                  # Skill 文件
-├── plans/                         # 设计文档 + BACKLOG.md
-├── scripts/deploy.sh              # 部署脚本
+├── skills/brain/                  # AI Skill（发布时同步到根目录）
+├── zettelkasten-github/           # GitHub 发布仓库镜像
+│   ├── docs/assets/               # 信息图
+│   ├── docs/COMPATIBILITY.md
+│   ├── scripts/deploy.sh
+│   └── README.md / README.zh.md / AGENTS.md
+├── plans/                         # 设计文档 + BACKLOG.md（内部，不发布）
+├── scripts/                       # 部署与辅助脚本
 ├── AGENTS.md                      # 项目指南（必读）
 └── DEVELOPMENT.md                 # 开发指南
 ```
@@ -160,10 +192,11 @@
 bash scripts/deploy.sh
 
 # 测试
-npm test                              # 689 tests
-npx vitest run src/service/__tests__/heatmap-service.test.ts
+npm test                              # 1724 tests
+npm run build:bridge                  # 构建 Hermes MCP bridge
 npx tsx scripts/benchmark.mjs         # 性能基准
 npx tsx scripts/e2e-tool-test.mjs     # E2E 工具链
+bash scripts/run-compat-matrix.sh     # 本地兼容性矩阵
 
 # OpenClaw
 openclaw zk init

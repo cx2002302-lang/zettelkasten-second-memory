@@ -322,4 +322,18 @@ CREATE VIEW zettel_notes AS SELECT * FROM notes;
 
 ---
 
-*文档版本: v1.0 | 生成日期: 2026-05-13 | 来源项目: open-upsp v0.3.0*
+---
+
+## 后续更新记录
+
+> 2026-06-25
+
+当前插件版本已推进至 **v1.0.0-beta.8.1**，以下优化建议已落地或发生变化：
+
+- **发布包体积**：性能基准信息图已从发布包移除，当前发布包仅含代码、README、AGENTS、LICENSE、docs/COMPATIBILITY.md 和主信息图，体积极大降低。
+- **测试**：测试数从 689 提升至 **1724**，硬编码 `/test` 路径已替换为临时目录。
+- **兼容性**：新增 `scripts/lib/compat.sh` 统一处理 OpenClaw 2026.4.x / 2026.6.x+ 差异；插件 manifest 已声明 `contracts.tools`。
+- **Hermes 支持**：新增 `src/mcp/http-bridge.ts`，通过 Streamable HTTP 暴露 MCP 工具。
+- **文档**：README、AGENTS、COMPATIBILITY 已同步当前版本；内部 PHASE*/INTEGRATION/TESTING_GUIDE/CHANGELOG/DEVELOPMENT 不再进入发布包。
+
+*原始文档版本: v1.0 | 生成日期: 2026-05-13 | 来源项目: open-upsp v0.3.0*

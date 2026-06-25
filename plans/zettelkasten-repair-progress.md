@@ -34,9 +34,9 @@
 **问题**: MCP server中的`searchNotes`方法返回空数组，核心搜索功能未实现
 
 **修复内容**:
-1. 在 [`NoteService`](openclaw/src/zettelkasten/service/note-service.ts) 中添加 `searchNotes` 方法
-2. 在 [`MCP server`](openclaw/src/zettelkasten/mcp/server.ts) 中调用 NoteService 的搜索功能
-3. 实际调用 [`NoteRepository.search()`](openclaw/src/zettelkasten/repository/note-repository.ts:357) 实现全文搜索
+1. 在 [`NoteService`](src/service/note-service.ts) 中添加 `searchNotes` 方法
+2. 在 [`MCP server`](src/mcp/server.ts) 中调用 NoteService 的搜索功能
+3. 实际调用 [`NoteRepository.search()`](src/repository/note-repository.ts:357) 实现全文搜索
 
 **代码变更**:
 ```typescript

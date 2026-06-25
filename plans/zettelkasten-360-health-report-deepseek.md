@@ -282,7 +282,7 @@
 
 | # | 问题描述 | 位置 | 修复建议 | 关联报告 |
 |---|----------|------|----------|----------|
-| 1 | `searchNotes` 空实现 | [`mcp/server.ts:60`](openclaw/src/zettelkasten/mcp/server.ts:60) | 实现 NoteService 搜索方法并调用 | K2.5/DeepSeek |
+| 1 | `searchNotes` 空实现 | [`mcp/server.ts:60`](src/mcp/server.ts:60) | 实现 NoteService 搜索方法并调用 | K2.5/DeepSeek |
 | 2 | 核心服务无测试 | 多个 Service 文件 | 为 NoteService、LinkService、CEQRCEngine 等添加单元测试 | K2.5/DeepSeek |
 | 3 | Repository 层无测试 | 多个 Repository 文件 | 为所有 Repository 添加单元测试 | K2.5/DeepSeek |
 
@@ -290,8 +290,8 @@
 
 | # | 问题描述 | 位置 | 修复建议 | 关联报告 |
 |---|----------|------|----------|----------|
-| 1 | `any` 类型使用 | [`note-repository.ts:122`](openclaw/src/zettelkasten/repository/note-repository.ts:122) | 定义明确的 Row 类型，移除 `as any` | K2.5/DeepSeek |
-| 2 | TODO 注释未处理 | [`mcp/server.ts:150`](openclaw/src/zettelkasten/mcp/server.ts:150) | 实现 CEQRC 工作流或移除 TODO | K2.5/DeepSeek |
+| 1 | `any` 类型使用 | [`note-repository.ts:122`](src/repository/note-repository.ts:122) | 定义明确的 Row 类型，移除 `as any` | K2.5/DeepSeek |
+| 2 | TODO 注释未处理 | [`mcp/server.ts:150`](src/mcp/server.ts:150) | 实现 CEQRC 工作流或移除 TODO | K2.5/DeepSeek |
 | 3 | 缺少抽象接口 | 多个 Repository | 为 Repository 层定义接口，支持依赖注入 | K2.5/DeepSeek |
 | 4 | 循环依赖风险 | 多个 Service 文件 | 引入依赖注入容器或重构依赖关系 | K2.5/DeepSeek |
 
@@ -300,7 +300,7 @@
 | # | 问题描述 | 位置 | 修复建议 | 关联报告 |
 |---|----------|------|----------|----------|
 | 1 | 重复代码 | 多个 Repository | 提取通用的 `rowToXxx` 转换函数 | K2.5/DeepSeek |
-| 2 | 魔法数字 | [`note-service.ts:43`](openclaw/src/zettelkasten/service/note-service.ts:43) | 将硬编码阈值提取为配置常量 | K2.5/DeepSeek |
+| 2 | 魔法数字 | [`note-service.ts:43`](src/service/note-service.ts:43) | 将硬编码阈值提取为配置常量 | K2.5/DeepSeek |
 | 3 | 事件机制缺失 | 全局 | 引入事件总线，解耦服务间通信 | K2.5/DeepSeek |
 | 4 | 文档不完整 | 全局 | 补充 API 文档、用户指南和部署文档 | K2.5/DeepSeek |
 

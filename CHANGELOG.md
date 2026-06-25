@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.0-beta.8 — OpenClaw 2026.6.x + Hermes MCP Compatibility
+## v1.0.0-beta.8.1 — OpenClaw 2026.6.x + Hermes MCP Compatibility
 
 **Release Date**: 2026-06-25
 
@@ -24,6 +24,13 @@
 - Glow ranking empty-cache fallback
 - DB ↔ Markdown file system sync
 - Hermes config path (`/opt/data/config.yaml`)
+
+### 📝 Documentation & Release Packaging
+
+- Proofread README.md / README.zh.md / AGENTS.md / docs/COMPATIBILITY.md
+- Replaced ASCII system architecture diagram with Mermaid graph
+- Fixed Skill install path (`skills/brain` instead of `src/skills/brain`)
+- Removed internal-only files (`CHANGELOG.md`, `DEVELOPMENT.md`, `docs/TESTING_GUIDE.md`, `src/PHASE*.md`, `src/INTEGRATION.md`) from the public release package to prevent stale references and dead links
 
 ---
 

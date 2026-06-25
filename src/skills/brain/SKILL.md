@@ -1,8 +1,8 @@
 # Zettelkasten Brain Skill
 
-**ID**: `zettelkasten-brain` | **Version**: 1.0.0-beta.2 | **OpenClaw**: >= 2026.4.24
+**ID**: `zettelkasten-brain` | **Version**: 1.0.0-beta.3 | **OpenClaw**: >= 2026.4.23 | **Hermes Agent**: v0.17.0+（实验性）
 
-将 OpenClaw 变成你的**第二记忆大脑**。AI 代理自动把对话中的知识保存到 Zettelkasten，建立双向链接，评估知识健康度，并在需要时检索。
+将 OpenClaw / Hermes Agent 变成你的**第二记忆大脑**。AI 代理自动把对话中的知识保存到 Zettelkasten，建立双向链接，评估知识健康度，并在需要时检索。
 
 ---
 
@@ -12,9 +12,14 @@
 mkdir -p ~/.openclaw/skills
 cp -r zettelkasten-brain ~/.openclaw/skills/
 openclaw config set agents.defaults.skills '["zettelkasten-brain"]'
+# OpenClaw 2026.4.x
 openclaw config set tools.alsoAllow '["zettelkasten"]'
+# OpenClaw 2026.6.x+（推荐）
+# openclaw config set tools.alsoAllow '["group:plugins"]'
 openclaw gateway restart
 ```
+
+> **注意**：OpenClaw 2026.6.x+ 已移除 `agents.defaults.systemPromptOverride`，Skill 通过 `skills.load.extraDirs` 正常加载即可。
 
 ---
 
@@ -200,4 +205,4 @@ bash ~/.openclaw/skills/zettelkasten-brain/snapshot.sh  # 手动快照
 
 ---
 
-**进化状态**: v1.0.0-beta.2 → Wave 3 + Phase 5 已同步
+**进化状态**: v1.0.0-beta.3 → Wave 3 + Phase 5/6 已同步，支持 OpenClaw 2026.6.x 与 Hermes Agent

@@ -10,7 +10,7 @@
 
 | 类别 | 定义 | 数量上限 | 示例 |
 |------|------|----------|------|
-| **Minimum Supported** | 插件声明支持的最低 OpenClaw 版本 | 1 | `2026.4.23` |
+| **Minimum Supported** | 插件声明支持的最低 OpenClaw 版本 | 1 | `2026.4.23+` |
 | **Current Production** | 当前用户/组织实际运行的版本 | 1–2 | `2026.4.24` |
 | **Latest Stable** | 镜像仓库的 `latest` 标签 | 1 | `latest` |
 | **Preview / Edge** | 官方 pre-release、nightly、RC | 可选 1 | `2026.5.x-rc` |
@@ -109,7 +109,7 @@ bash scripts/run-compat-tests.sh
 
 ### 4.2 固定版本标签的更新
 
-`2026.4.23`、`2026.4.24` 等固定标签不会自动变化，仅在以下情况更新：
+`2026.4.23+`、`2026.4.24` 等固定标签不会自动变化，仅在以下情况更新：
 
 - 官方发布该标签的补丁版本（如 `2026.4.24` 更新 digest）。
 - 安全漏洞修复需要强制更新。
@@ -140,7 +140,7 @@ bash scripts/run-compat-tests.sh
 
 ```bash
 # 切换到 beta.7 release
-./scripts/switch-zk-version.sh v1.0.0-beta.7
+./scripts/switch-zk-version.sh v1.0.0-beta.8.1
 
 # 切换回 current
 ./scripts/switch-zk-version.sh current
@@ -166,7 +166,7 @@ bash scripts/run-compat-tests.sh
 
 | 版本 | 状态 | 加入日期 | 计划淘汰日期 | 已知差异 |
 |------|------|----------|--------------|----------|
-| `2026.4.23` | Minimum Supported | 2026-06-24 | 当插件放弃支持时 | 无 |
+| `2026.4.23+` | Minimum Supported | 2026-06-24 | 当插件放弃支持时 | 无 |
 | `2026.4.24` | Current Production | 2026-06-24 | 生产环境升级后 | 无 |
 | `latest` (2026.6.10) | Latest Stable | 2026-06-24 | 持续滚动 | 已移除 `agents.defaults.systemPromptOverride`；内置 minimax provider 走 Anthropic 适配，需为 `sk-cp-` CN key 配置 OpenAI-compatible 自定义 provider；Agent CLI 测试可用；Zettelkasten 插件核心功能通过 |
 | `2026.4.24` | Current Production | 2026-06-24 | 生产环境升级后 | `openclaw agent --local` 存在挂起问题（codex catalog fallback 后卡住），生产环境同样复现；zk 核心功能通过 |
@@ -181,5 +181,5 @@ bash scripts/run-compat-tests.sh
 
 ---
 
-*版本：v1.0.0-beta.7*  
+*版本：v1.0.0-beta.8.1*  
 *更新日期：2026-06-24*

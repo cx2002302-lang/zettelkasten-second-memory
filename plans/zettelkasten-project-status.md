@@ -1,7 +1,7 @@
 # Zettelkasten 项目状态报告
 
-> **最后更新**: 2026-04-22  
-> **文档版本**: v1.0
+> **最后更新**: 2026-06-25  
+> **文档版本**: v1.1
 
 ---
 
@@ -74,17 +74,17 @@
 1. **Feedback Repository rating 转换**
    - 问题: 0-1 范围的 rating 直接存入数据库，但 schema 要求 1-5
    - 修复: 添加转换逻辑 `Math.max(1, Math.min(5, Math.round(rating * 4) + 1))`
-   - 文件: [`feedback-repository.ts`](openclaw/src/zettelkasten/repository/feedback-repository.ts:35)
+   - 文件: [`feedback-repository.ts`](src/repository/feedback-repository.ts:35)
 
 2. **Feedback Service 自动处理逻辑**
    - 问题: `thumbs_up` 反馈未自动处理
    - 修复: 修改 `submitFeedback` 方法，添加 `processFeedbackAndReturn` 方法
-   - 文件: [`feedback-service.ts`](openclaw/src/zettelkasten/service/feedback-service.ts:44)
+   - 文件: [`feedback-service.ts`](src/service/feedback-service.ts:44)
 
 3. **测试用例调整**
    - 问题: "should create feedback" 测试使用 `thumbs_up` 期望 `processed: false`
    - 修复: 改为使用 `correction` 类型
-   - 文件: [`feedback-service.test.ts`](openclaw/src/zettelkasten/service/__tests__/feedback-service.test.ts:25)
+   - 文件: [`feedback-service.test.ts`](src/service/__tests__/feedback-service.test.ts:25)
 
 ---
 
@@ -126,8 +126,36 @@
 |------|------|
 | [`zettelkasten-plan.md`](plans/zettelkasten-plan.md) | 项目总体规划 |
 | [`zettelkasten-health-repair-plan.md`](plans/zettelkasten-health-repair-plan.md) | 修复计划 |
-| [`PHASE5-COMPLETION.md`](openclaw/src/zettelkasten/PHASE5-COMPLETION.md) | Phase 5 完成总结 |
+| [`PHASE5-COMPLETION.md`](src/PHASE5-COMPLETION.md) | Phase 5 完成总结 |
 
 ---
 
 *报告生成时间: 2026-04-22*
+
+---
+
+## 2026-06-25 重大进展更新
+
+当前插件版本已推进至 **v1.0.0-beta.8.1**，测试数从 384 提升至 **1724**，新增 OpenClaw 2026.6.x 与 Hermes Agent v0.17.0 支持。
+
+### 新增完成项
+- **OpenClaw 2026.6.x 兼容**：插件 manifest 声明 `contracts.tools`；`scripts/lib/compat.sh` 统一版本判断。
+- **Hermes MCP Bridge**：新增 `src/mcp/http-bridge.ts`，通过 Streamable HTTP 暴露全部 MCP 工具。
+- **测试修复**：移除硬编码 `/test` 路径，改用 `src/testing/test-fs.ts` 临时目录；新增 `scripts/run-compat-matrix.sh` 本地矩阵测试。
+- **文档与发布包**：README/AGENTS/COMPATIBILITY 同步当前版本；ASCII 架构图替换为 Mermaid；发布包移除内部 PHASE*/INTEGRATION/CHANGELOG/DEVELOPMENT/TESTING_GUIDE，避免死链。
+
+### 当前指标（参考）
+| 指标 | 状态 |
+|------|------|
+| 测试数 | 1724 ✅ |
+| OpenClaw 支持 | 2026.4.24 / 2026.6.x |
+| Hermes 支持 | v0.17.0+（实验性） |
+| 发布状态 | v1.0.0-beta.8.1 已推送到 GitHub |
+
+### 关键文件（当前）
+| 文件 | 说明 |
+|------|------|
+| [`README.md`](../README.md) | 主页与快速开始 |
+| [`AGENTS.md`](../AGENTS.md) | 项目指南与关键配置 |
+| [`docs/COMPATIBILITY.md`](../docs/COMPATIBILITY.md) | 兼容性活记忆 |
+| [`src/mcp/http-bridge.ts`](../src/mcp/http-bridge.ts) | Hermes MCP bridge |

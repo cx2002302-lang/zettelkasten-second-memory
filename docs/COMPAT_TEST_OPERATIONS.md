@@ -21,7 +21,7 @@
 
 | 服务名 | 容器名 | 外部端口 | 目标版本 |
 |--------|--------|----------|----------|
-| `openclaw-2026-4-23` | `openclaw-2026-4-23` | `18890` | `ghcr.io/openclaw/openclaw:2026.4.23` |
+| `openclaw-2026-4-23` | `openclaw-2026-4-23` | `18890` | `ghcr.io/openclaw/openclaw:2026.4.23+` |
 | `openclaw-2026-4-24` | `openclaw-2026-4-24` | `18891` | `ghcr.io/openclaw/openclaw:2026.4.24` |
 | `openclaw-latest` | `openclaw-latest` | `18892` | `ghcr.io/openclaw/openclaw:latest` |
 | `hermes-latest` | `hermes-latest` | `8652` / `9129` | `nousresearch/hermes-agent:latest` |
@@ -286,5 +286,5 @@ bash scripts/retry-pull.sh nousresearch/hermes-agent:latest 30
 
 ---
 
-*版本：v1.0.0-beta.7*  
+*版本：v1.0.0-beta.8.1*  
 *更新日期：2026-06-24*

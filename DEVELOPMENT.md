@@ -1,8 +1,8 @@
 # Zettelkasten 开发包
 
-**版本**: 1.0.0-beta.1  
+**版本**: v1.0.0-beta.8.1  
 **目标路径**: `~/.openclaw/project/zettelkasten`  
-**开发工具**: Kimi Code CLI + OpenClaw 2026.4.24
+**开发工具**: Kimi Code CLI + OpenClaw 2026.4.24 / 2026.6.x
 
 ---
 
@@ -17,9 +17,9 @@ zettelkasten/
 │   ├── storage/           # Schema
 │   ├── integration/       # 集成层
 │   ├── mcp/               # MCP 工具
-│   ├── skills/brain/      # AI Skill
+│   ├── examples/          # 使用示例
 │   └── core/              # 类型定义
-├── skills/brain/          # Skill 独立目录
+├── skills/brain/          # AI Skill
 ├── plans/                 # 设计文档
 ├── scripts/               # 部署/开发脚本
 ├── docs/                  # 使用文档
@@ -35,8 +35,8 @@ zettelkasten/
 
 ```bash
 # 解压到 ~/.openclaw/project/
-tar -xzf zettelkasten-dev-1.0.0-beta.1.tar.gz
-mv zettelkasten-dev ~/.openclaw/project/zettelkasten
+tar -xzf zettelkasten-plugin-v1.0.0-beta.8.1.tar.gz
+mv zettelkasten-plugin ~/.openclaw/project/zettelkasten
 ```
 
 ### 2. 用 Kimi Code CLI 打开
@@ -145,8 +145,9 @@ openclaw zk doctor
   },
   "agents": {
     "defaults": {
-      "skills": ["zettelkasten-brain"],
-      "systemPromptOverride": "file:~/.openclaw/project/zettelkasten/skills/brain/PROMPT.md"
+      "skills": ["zettelkasten-brain"]
+      # 注意：OpenClaw 2026.6.x+ 已移除 systemPromptOverride；
+      # 低版本也不要使用 file: 前缀，需直接内联提示词文本
     }
   }
 }
@@ -163,8 +164,9 @@ openclaw zk doctor
 | `src/service/note-service.ts` | 笔记 CRUD + 搜索 |
 | `src/storage/db-schema.ts` | SQLite Schema + FTS5 |
 | `src/repository/note-repository.ts` | 数据访问层 |
-| `src/skills/brain/PROMPT.md` | AI 系统提示词 |
-| `src/skills/brain/RULES.md` | 行为规则矩阵 |
+| `skills/brain/PROMPT.md` | AI 系统提示词 |
+| `skills/brain/RULES.md` | 行为规则矩阵 |
+| `src/mcp/http-bridge.ts` | Hermes MCP HTTP bridge |
 
 ---
 
@@ -182,6 +184,10 @@ openclaw zk search "Hello"
 # Skill 测试
 openclaw config get agents.defaults.skills
 # 应返回: ["zettelkasten-brain"]
+
+# Hermes bridge 构建
+npm run build:bridge
+ZETTELKASTEN_DB_PATH=~/.openclaw/zettelkasten/zettelkasten.db ZETTELKASTEN_NOTES_DIR=~/.openclaw/zettelkasten/notes ZETTELKASTEN_MCP_PORT=9090 node dist/mcp/http-bridge.js
 ```
 
 ---
@@ -208,5 +214,5 @@ chmod 644 ~/.openclaw/zettelkasten/zettelkasten.db
 
 ---
 
-**Git 仓库**: `/home/myxia/.openclaw/project/zettelkasten/`  
-**标签**: `备份: v1.0.0-beta.7 发布完成`
+**Git 仓库**: 本项目根目录  
+**当前版本**: v1.0.0-beta.8.1

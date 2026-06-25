@@ -32,7 +32,7 @@
 1. **复制 Zettelkasten 源码**
    ```bash
    # 将 src/zettelkasten/ 复制到 OpenClaw 项目
-   rsync -av openclaw/src/zettelkasten/ /opt/openclaw-test/src/zettelkasten/
+   rsync -av src/ /opt/openclaw-test/src/zettelkasten/
    ```
 
 2. **安装依赖并编译**

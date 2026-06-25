@@ -91,13 +91,13 @@ interface HealthIssue {
 | # | 问题 | 位置 | 共识 |
 |---|------|------|------|
 | 1 | 测试覆盖率仅 45/100 | 全局 | 待确认 |
-| 2 | `searchNotes` 空实现 | [`mcp/server.ts`](openclaw/src/zettelkasten/mcp/server.ts:60) | 待确认 |
+| 2 | `searchNotes` 空实现 | [`mcp/server.ts`](src/mcp/server.ts:60) | 待确认 |
 
 #### P1 重要问题
 
 | # | 问题 | 位置 | 共识 |
 |---|------|------|------|
-| 1 | `any` 类型使用 | [`review-service.ts`](openclaw/src/zettelkasten/service/review-service.ts:163), [`note-repository.ts`](openclaw/src/zettelkasten/repository/note-repository.ts:242) | 待确认 |
+| 1 | `any` 类型使用 | [`review-service.ts`](src/service/review-service.ts:163), [`note-repository.ts`](src/repository/note-repository.ts:242) | 待确认 |
 | 2 | TODO 注释未处理 | 多处 | 待确认 |
 
 ---

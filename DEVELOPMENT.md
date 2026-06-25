@@ -208,5 +208,5 @@ chmod 644 ~/.openclaw/zettelkasten/zettelkasten.db
 
 ---
 
-**Git 仓库**: `/root/openclawFiles/`  
-**标签**: `v1.0.0-beta.1`
+**Git 仓库**: `/home/myxia/.openclaw/project/zettelkasten/`  
+**标签**: `备份: v1.0.0-beta.7 发布完成`

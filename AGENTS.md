@@ -2,11 +2,31 @@
 
 ## 系统版本信息（每次思考必须考虑）
 
-- **OpenClaw 版本**: 2026.4.24
-- **Zettelkasten 插件版本**: 2026.4.23-v1.0.0
-- **Skill 版本**: 1.0.0-beta.1
+- **OpenClaw 版本**: 2026.6.10（兼容 2026.4.23+）
+- **Zettelkasten 插件版本**: 1.0.0-beta.7
+- **Skill 版本**: 1.0.0-beta.2
 - **Node 要求**: >= 22.14.0（`node:sqlite` 需要 Node 22+）
 - **OpenClaw 最低要求**: >= 2026.4.23
+
+## 兼容性保障索引
+
+所有兼容性相关决策、已知坑、版本矩阵、测试命令都记录在 `docs/COMPATIBILITY.md`。
+**每次修改兼容性相关代码前，先更新该文档。**
+
+## OpenClaw 2026.6.x 兼容性变更
+
+2026.6.x 引入了基于 `contracts.tools` 的插件工具契约：
+
+1. **插件 manifest 必须声明 `contracts.tools`**（已在 `src/plugin/openclaw.plugin.json` 中补齐全部 `zk_*` 工具名）。未声明时，运行时 `api.registerTool(...)` 会被拒绝，agent 看不到任何 zk 工具。
+2. **工具 allowlist** 仍通过 `tools.alsoAllow` 配置，但推荐使用插件 ID 或 `group:plugins`：
+   - `2026.4.x`：`tools.alsoAllow: ["zettelkasten"]`
+   - `2026.6.x+`：`tools.alsoAllow: ["group:plugins"]` 或 `["zettelkasten"]`（两者在 manifest 声明 contracts 后都会被正确展开为具体工具）
+3. **systemPromptOverride 已移除**：2026.6.x+ 不再接受 `agents.defaults.systemPromptOverride`，Skill 通过 `skills.load.extraDirs` 正常加载即可。
+4. **修改 manifest 后需要刷新插件索引**：
+   ```bash
+   openclaw plugins registry --refresh
+   openclaw gateway restart
+   ```
 
 ## OpenClaw 2026.4.24 配置字段备忘
 
@@ -54,25 +74,26 @@ Skill 目录注册（两种路径都兼容）：
 ## 项目结构
 
 ```
-/root/openclawFiles/
-├── openclaw/                          # OpenClaw 源码（嵌入式 git 子模块）
-│   ├── src/zettelkasten/              # 完整插件源码（20,028 LOC，577 tests）
-│   │   ├── plugin/index.ts            # 插件入口（已修复 zk init + CLI 命令）
-│   │   ├── skills/brain/              # Brain Skill（beta）
-│   │   ├── service/note-service.ts    # 笔记业务层
-│   │   ├── storage/db-schema.ts       # 数据库 Schema
-│   │   └── ...
-│   └── extensions/zettelkasten/       # 捆绑插件入口
-├── zettelkasten-deployment/           # 旧部署包（已废弃，不要用）
-├── releases/                          # 发布包
-│   ├── zettelkasten-plugin-2026.4.23-v1.0.0.tar.gz
-│   └── zettelkasten-skill-v1.0.0.tar.gz
-└── plans/                             # 设计文档
+/home/myxia/.openclaw/project/zettelkasten/      # 当前项目根目录
+├── src/                                         # 完整插件源码
+│   ├── plugin/index.ts                          # 插件入口（zk init + CLI 命令）
+│   ├── skills/brain/                            # Brain Skill（beta）
+│   ├── service/note-service.ts                  # 笔记业务层
+│   ├── storage/db-schema.ts                     # 数据库 Schema（约 15 张表）
+│   └── ...
+├── zettelkasten-release/                        # 清理后的发布目录
+├── zettelkasten-github/                         # GitHub 镜像副本
+├── releases/                                    # 发布包
+│   ├── zettelkasten-plugin-1.0.0-beta.7.tar.gz
+│   └── zettelkasten-skill-v1.0.0-beta.6.tar.gz
+├── scripts/                                     # 部署与辅助脚本
+├── skills/                                      # Brain Skill 源码
+└── plans/                                       # 设计文档
 ```
 
 ## 关键修复历史
 
-1. **zk init 修复** — 显式调用 `ensureZettelkastenSchema`，创建所有 11 张表
+1. **zk init 修复** — 显式调用 `ensureZettelkastenSchema`，创建所有核心表（约 15 张，含 virtual FTS）
 2. **部署路径** — 从 `/opt/` 迁移到 `~/.openclaw/zettelkasten-plugin/`（无 sudo）
 3. **SDK 路径** — 移除 `sed` 替换，使用干净的 `openclaw/plugin-sdk/*` 导入
 4. **CLI 命令** — 新增 `new`, `list`, `search`, `show`, `link`, `doctor`
@@ -80,6 +101,8 @@ Skill 目录注册（两种路径都兼容）：
 6. **FTS 中文搜索修复** — `note-repository.ts` 实现 FTS + LIKE 双引擎合并搜索
 7. **插件工具暴露修复** — 配置 `tools.alsoAllow: ["zettelkasten"]` 使 agent 可见 MCP 工具
 8. **systemPromptOverride 修复** — 移除 `file:` 前缀，直接内联 PROMPT.md 内容
+9. **OpenClaw 2026.6.x 兼容** — 在 `openclaw.plugin.json` 中声明 `contracts.tools`，并刷新插件索引
+10. **Hermes MCP Bridge** — 新增 `src/mcp/http-bridge.ts`，将 Zettelkasten MCP 工具以 Streamable HTTP 暴露给 Hermes Agent
 
 ## 常用命令
 
@@ -91,17 +114,20 @@ bash scripts/deploy.sh
 openclaw zk init
 openclaw zk doctor
 
-# Skill 激活（注意：systemPromptOverride 不支持 file: 前缀）
+# Skill 激活
 openclaw config set skills.load.extraDirs '["~/.openclaw/skills"]'
 openclaw config set agents.defaults.skills '["zettelkasten-brain"]'
 
 # 关键：必须配置 tools.alsoAllow，否则 agent 看不到 zk 工具
+# 2026.4.x
 openclaw config set tools.alsoAllow '["zettelkasten"]'
+# 2026.6.x+（推荐）
+openclaw config set tools.alsoAllow '["group:plugins"]'
 
-# systemPromptOverride 需直接填入文本（可用脚本读取文件）
-# PROMPT=$(cat ~/.openclaw/skills/zettelkasten-brain/PROMPT.md)
-# openclaw config set agents.defaults.systemPromptOverride "$PROMPT"
-```
+# 修改 plugin manifest 后刷新索引
+openclaw plugins registry --refresh
+openclaw gateway restart
+
 
 ## Zettelkasten 操作铁律（每次涉及 zk 时必须遵守）
 
@@ -111,13 +137,13 @@ openclaw config set tools.alsoAllow '["zettelkasten"]'
 > - `zk_search_notes` — 检索
 > - `zk_create_note` — 创建
 > - `zk_update_note` — 更新
-> - `zk_create_link` — 关联
+> - `zk_create_link` / `zk_create_note` / `zk_update_note` — 关联与写入
 > - `zk_get_note` — 读取
 >
 > **违反后果**: 直接操作 SQLite 会导致 FTS 索引不一致、链接表损坏、笔记状态丢失。任何绕过 Skill 规则的操作都是不可接受的。
 
 ## 注意事项
 
-- **不要用** `zettelkasten-deployment/` 子集，统一用 `openclaw/src/zettelkasten/` 完整版
-- **测试环境** — 当前环境 Node v22.22.2，577 个测试全部通过
-- **Git** — 主仓库在 `/root/openclawFiles/`，标签 `v1.0.0-beta.1`
+- **不要用** `zettelkasten-deployment/` 子集，统一用本项目 `src/` 完整版
+- **测试环境** — 当前环境 Node v22.22.2，1724 个测试全部通过
+- **Git** — 主仓库为当前目录 `/home/myxia/.openclaw/project/zettelkasten/`，最近提交 `备份: v1.0.0-beta.7 发布完成`

@@ -40,7 +40,7 @@
 - `zk_update_note` — 更新笔记
 - `zk_archive_note` — 归档笔记
 - `zk_unarchive_note` — 恢复归档笔记
-- `zk_run_ceqrc_workflow` — 运行 CEQRC 深度内化工作流
+- `zk_run_ceqrc` — 运行 CEQRC 深度内化工作流
 - `zk_distill_memory` — 蒸馏 OpenClaw memory 日志
 - `zk_review_note` — 审核笔记
 - `zk_submit_review` — 提交审核决定

@@ -11,6 +11,9 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 PLUGIN_DIR="${PLUGIN_DIR:-$HOME/.openclaw/zettelkasten-plugin}"
 CONFIG_FILE="$HOME/.openclaw/openclaw.json"
 
+# shellcheck source=scripts/lib/compat.sh
+source "$SCRIPT_DIR/lib/compat.sh"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -37,18 +40,27 @@ fi
 # 2. 复制源码
 log_info "[1/5] Copying source..."
 mkdir -p "$PLUGIN_DIR"
-rsync -av --exclude='node_modules' --exclude='__tests__' \
+# 排除测试目录、依赖目录以及历史上误创建的 brace-expansion 垃圾目录
+rsync -av \
+    --exclude='node_modules' \
+    --exclude='__tests__' \
+    --exclude='{core,repository,storage,engine,workflow,search,integration}' \
     "$PROJECT_DIR/src/" "$PLUGIN_DIR/" >/dev/null 2>&1 || \
 cp -r "$PROJECT_DIR/src/"* "$PLUGIN_DIR/"
+# 确保 cp fallback 不会把垃圾目录带过去
+if [ -d "$PLUGIN_DIR/{core,repository,storage,engine,workflow,search,integration}" ]; then
+    rm -rf "$PLUGIN_DIR/{core,repository,storage,engine,workflow,search,integration}"
+fi
 log_ok "Source copied"
 
 # 3. 安装依赖
 log_info "[2/5] Installing dependencies..."
+PLUGIN_VERSION="1.0.0-beta.7"
 if [ ! -f "$PLUGIN_DIR/package.json" ]; then
-    cat > "$PLUGIN_DIR/package.json" << 'EOF'
+    cat > "$PLUGIN_DIR/package.json" << EOF
 {
   "name": "openclaw-zettelkasten-plugin",
-  "version": "1.0.0",
+  "version": "$PLUGIN_VERSION",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -56,6 +68,20 @@ if [ ! -f "$PLUGIN_DIR/package.json" ]; then
   }
 }
 EOF
+else
+    # 确保已存在 package.json 的版本号与当前发布一致
+    python3 -c "
+import json, os
+p = os.path.expanduser('$PLUGIN_DIR/package.json')
+with open(p, 'r') as f:
+    pkg = json.load(f)
+if pkg.get('version') != '$PLUGIN_VERSION':
+    pkg['version'] = '$PLUGIN_VERSION'
+    with open(p, 'w') as f:
+        json.dump(pkg, f, indent=2, ensure_ascii=False)
+        f.write('\n')
+    print(f'Updated package.json version to $PLUGIN_VERSION')
+" 2>/dev/null || true
 fi
 
 cd "$PLUGIN_DIR"
@@ -92,17 +118,21 @@ if command -v openclaw >/dev/null 2>&1; then
     
     # BUG-001 修复: 清理 alsoAllow 中的无效条目（Skill ID 不应放入 alsoAllow）
     log_info "Checking tools.alsoAllow..."
+    ALLOWED_ENTRIES="zettelkasten"
+    if oc_version_ge "2026.6.0"; then
+        ALLOWED_ENTRIES="$ALLOWED_ENTRIES group:plugins"
+    fi
     python3 -c "
 import json, os, sys
 cfg_path = os.path.expanduser('~/.openclaw/openclaw.json')
 try:
+    allowed = set('$ALLOWED_ENTRIES'.split())
     with open(cfg_path, 'r') as f:
         cfg = json.load(f)
     if 'tools' in cfg and 'alsoAllow' in cfg.get('tools', {}):
         original = cfg['tools']['alsoAllow']
-        # 只保留 zk_ 前缀的工具名，移除 Skill ID（如 zettelkasten-brain, open-upsp 等）
-        cleaned = [x for x in original if x.startswith('zk_') or x == 'zettelkasten']
-        removed = [x for x in original if not x.startswith('zk_')]
+        cleaned = [x for x in original if x.startswith('zk_') or x in allowed]
+        removed = [x for x in original if not (x.startswith('zk_') or x in allowed)]
         if removed:
             cfg['tools']['alsoAllow'] = cleaned
             with open(cfg_path, 'w') as f:

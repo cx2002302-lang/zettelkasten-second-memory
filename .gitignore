@@ -43,3 +43,9 @@ Thumbs.db
 # Temporary
 tmp/
 temp/
+
+# Internal release directories
+releases/
+zettelkasten-release/
+zettelkasten-github/
+.audit-reports/

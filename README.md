@@ -8,9 +8,9 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-[![Version](https://img.shields.io/badge/version-v1.0.0--beta.6-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
-[![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24-green.svg)](https://github.com/openclaw)
-[![MCP Server](https://img.shields.io/badge/MCP-28%20Tools-orange.svg)](src/mcp/server.ts)
+[![Version](https://img.shields.io/badge/version-v1.0.0-beta.7-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24/2026.6.x-green.svg)](https://github.com/openclaw)
+[![MCP Server](https://img.shields.io/badge/MCP-34%20Tools-orange.svg)](src/mcp/server.ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.14.0-blue.svg)](package.json)
 
@@ -20,12 +20,12 @@
 
 | Component | Version | Status |
 |-----------|---------|--------|
-| Plugin | `v1.0.0-beta.6` | Active development |
+| Plugin | `v1.0.0-beta.7` | Active development |
 | Skill | `v1.0.0-beta.3` | Active development |
-| OpenClaw | `2026.4.24` | Developed & tested on 2026.4.24; compatible with >= 2026.4.23 |
+| OpenClaw | `2026.4.24/2026.6.x` | Developed & tested on 2026.4.24/2026.6.x; compatible with >= 2026.4.23 |
 | Node.js | `>= 22.14.0` | Required (for `node:sqlite`) |
 
-**Latest Release**: [v1.0.0-beta.6](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.6) — Auto-Review + Distillation Quality Guard + Memory Format Fix
+**Latest Release**: [v1.0.0-beta.7](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.7) — Compatibility adaptation for OpenClaw 2026.6.x and Hermes MCP bridge
 
 ---
 
@@ -114,7 +114,7 @@
 ### Requirements
 
 - **Node.js** >= 22.14.0 (requires built-in `node:sqlite`)
-- **OpenClaw** `2026.4.24` (developed & tested on this version; compatible with >= 2026.4.23)
+- **OpenClaw** `2026.4.24/2026.6.x` (developed & tested on this version; compatible with >= 2026.4.23)
 
 ### Installation
 

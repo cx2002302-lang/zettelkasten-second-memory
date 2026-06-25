@@ -20,6 +20,7 @@ import {
   closeTestDatabase,
   createTestNoteData,
 } from "../../repository/__tests__/test-helpers.js";
+import { createTestDir, cleanupTestDir } from "../../testing/test-fs.js";
 import type { DatabaseSync } from "node:sqlite";
 import type {
   LLMProvider,
@@ -113,10 +114,13 @@ describe("DistillerService", () => {
   let linkService: LinkService;
   let mockProvider: MockLLMProvider;
   let distillerService: DistillerService;
-  const basePath = "/test/notes";
+  let basePath: string;
+  let memoryDir: string;
 
   beforeEach(() => {
     db = createTestDatabase();
+    basePath = createTestDir("zk-distiller-notes-");
+    memoryDir = createTestDir("zk-distiller-mem-");
     noteService = new NoteService(db, basePath);
     linkService = new LinkService(db);
     mockProvider = new MockLLMProvider();
@@ -125,6 +129,8 @@ describe("DistillerService", () => {
 
   afterEach(() => {
     closeTestDatabase(db);
+    cleanupTestDir(basePath);
+    cleanupTestDir(memoryDir);
   });
 
   // ============================================================================
@@ -136,7 +142,7 @@ describe("DistillerService", () => {
       const mockSlices = [createTestSlice("slice-1", "Test conversation content")];
 
       // We need to mock the memory parser
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job).toBeDefined();
       expect(job.id).toMatch(/^\d{17}$/);
@@ -145,7 +151,7 @@ describe("DistillerService", () => {
     });
 
     it("should get job by ID", async () => {
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
       const retrieved = distillerService.getJob(job.id);
 
       expect(retrieved).toBeDefined();
@@ -158,8 +164,8 @@ describe("DistillerService", () => {
     });
 
     it("should get all jobs", async () => {
-      await distillerService.distillMemoryFile("/test/memory1.json", []);
-      await distillerService.distillMemoryFile("/test/memory2.json", []);
+      await distillerService.distillMemoryFile(`${memoryDir}/memory1.json`, []);
+      await distillerService.distillMemoryFile(`${memoryDir}/memory2.json`, []);
 
       const jobs = distillerService.getAllJobs();
       expect(jobs.length).toBeGreaterThanOrEqual(2);
@@ -167,7 +173,7 @@ describe("DistillerService", () => {
 
     it("should get jobs by date", async () => {
       const today = new Date().toISOString().split("T")[0];
-      await distillerService.distillMemoryFile("/test/memory.json", []);
+      await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       const jobs = distillerService.getJobsByDate(today);
       expect(jobs.length).toBeGreaterThanOrEqual(1);
@@ -244,7 +250,7 @@ describe("DistillerService", () => {
       // Replace the memory parser
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
       expect(job.summaryCount).toBeGreaterThanOrEqual(0);
@@ -268,7 +274,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
     });
@@ -281,7 +287,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
       expect(job.sliceCount).toBe(0);
@@ -313,7 +319,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", [existingNote]);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, [existingNote]);
 
       expect(job.status).toBe("completed");
     });
@@ -337,7 +343,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", [existingNote]);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, [existingNote]);
 
       expect(job.status).toBe("completed");
     });
@@ -355,7 +361,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
     });
@@ -379,7 +385,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
       expect(job.createdCount).toBeGreaterThanOrEqual(0);
@@ -401,7 +407,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
     });
@@ -428,7 +434,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", [targetNote]);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, [targetNote]);
 
       expect(job.status).toBe("completed");
     });
@@ -447,7 +453,7 @@ describe("DistillerService", () => {
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
       // Should not throw even if note creation has issues
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
     });
@@ -478,7 +484,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", [existingNote]);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, [existingNote]);
 
       expect(job.status).toBe("completed");
 
@@ -510,13 +516,13 @@ describe("DistillerService", () => {
         folder: "zettels",
         reviewed: true,
         tags: [],
-        filePath: "/test/notes/99999999999999999.md",
+        filePath: `${basePath}/99999999999999999.md`,
         createdAt: "2026-01-01T12:00:00Z",
         updatedAt: "2026-01-01T12:00:00Z",
         links: [],
       };
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", [nonExistentNote]);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, [nonExistentNote]);
 
       expect(job.status).toBe("completed");
     });
@@ -632,7 +638,7 @@ describe("DistillerService", () => {
       mockProvider.setMockSummary("Content 1", createTestSummary("sum-1", "React Concepts", 0.8));
       mockProvider.setMockSummary("Content 2", createTestSummary("sum-2", "TypeScript Guide", 0.8));
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
       expect(job.createdCount).toBe(2);
@@ -658,7 +664,7 @@ describe("DistillerService", () => {
         mockProvider.setMockSummary(slice.content, createTestSummary(`sum-${i}`, `Title ${i}`, 0.75));
       });
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.sliceCount).toBe(3);
       expect(job.summaryCount).toBe(3);
@@ -673,7 +679,7 @@ describe("DistillerService", () => {
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
       const beforeStart = new Date().toISOString();
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
       const afterComplete = new Date().toISOString();
 
       expect(job.startedAt).toBeDefined();
@@ -690,7 +696,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("failed");
       expect(job.error).toBeDefined();
@@ -715,7 +721,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
     });
@@ -734,7 +740,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
     });
@@ -755,7 +761,7 @@ describe("DistillerService", () => {
         mockProvider.setMockSummary(slice.content, createTestSummary(`sum-${i}`, `Title ${i}`, 0.75));
       });
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
       expect(job.sliceCount).toBe(20);
@@ -774,7 +780,7 @@ describe("DistillerService", () => {
 
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", []);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, []);
 
       expect(job.status).toBe("completed");
     });
@@ -798,7 +804,7 @@ describe("DistillerService", () => {
       distillerService.setMemoryParser(mockParser as unknown as MemoryParser);
 
       // Pass same note twice
-      const job = await distillerService.distillMemoryFile("/test/memory.json", [note, note]);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, [note, note]);
 
       expect(job.status).toBe("completed");
     });
@@ -838,7 +844,7 @@ describe("DistillerService", () => {
         createTestSummary("sum-2", "TypeScript Note", 0.8)
       );
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", existingNotes);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, existingNotes);
 
       expect(job.status).toBe("completed");
       expect(job.sliceCount).toBe(2);
@@ -882,7 +888,7 @@ describe("DistillerService", () => {
         createTestSummary("sum-3", "Unclear", 0.2)
       );
 
-      const job = await distillerService.distillMemoryFile("/test/memory.json", [existingNote]);
+      const job = await distillerService.distillMemoryFile(`${memoryDir}/memory.json`, [existingNote]);
 
       expect(job.status).toBe("completed");
       expect(job.sliceCount).toBe(3);

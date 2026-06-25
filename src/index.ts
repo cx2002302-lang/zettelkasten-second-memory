@@ -181,8 +181,8 @@ export class ZettelkastenClient {
   /**
    * 删除卡片
    */
-  deleteNote(id: string): boolean {
-    return this.noteRepo.delete(id);
+  async deleteNote(id: string): Promise<boolean> {
+    return await this.noteRepo.delete(id);
   }
   
   /**

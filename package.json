@@ -3,12 +3,16 @@
   "version": "1.0.0-beta.7",
   "type": "module",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:bridge": "esbuild src/mcp/http-bridge.ts --bundle --platform=node --format=esm --outfile=dist/mcp/http-bridge.js --packages=external"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@sinclair/typebox": "0.34.49"
   },
   "devDependencies": {
+    "esbuild": "^0.28.1",
+    "tsx": "^4.22.4",
     "vitest": "^3.0.0"
   }
 }

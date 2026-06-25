@@ -19,6 +19,7 @@ import { LinkRepository } from "../repository/link-repository.js";
 import { SerendipityEngine } from "../engine/phase6/serendipity-engine.js";
 import { MOCService } from "../service/phase6/moc-service.js";
 import { KnowledgeAuditService } from "../service/phase6/audit-service.js";
+import { createTestDir, cleanupTestDir } from "../testing/test-fs.js";
 import type { CreateNoteParams } from "../core/types.js";
 
 // ============================================================================
@@ -71,10 +72,11 @@ describe("Performance Tests", () => {
   let linkService: LinkService;
   let noteRepo: NoteRepository;
   let linkRepo: LinkRepository;
-  const basePath = "/test/perf-notes";
+  let basePath: string;
 
   beforeEach(() => {
     db = createPerfDatabase();
+    basePath = createTestDir("zk-perf-");
     noteService = new NoteService(db, basePath);
     linkService = new LinkService(db);
     noteRepo = new NoteRepository(db);
@@ -83,6 +85,7 @@ describe("Performance Tests", () => {
 
   afterEach(() => {
     closePerfDatabase(db);
+    cleanupTestDir(basePath);
   });
 
   // ==========================================================================
@@ -186,7 +189,8 @@ describe("Performance Tests", () => {
       const targetMs = 100;
       const start = performance.now();
 
-      const results = await noteService.searchNotes("Performance Test Note 250", 20);
+      // 使用通用前缀搜索，避免 3 位随机 ID 冲突导致特定 note 被覆盖后测试失败
+      const results = await noteService.searchNotes("Performance Test Note", 20);
 
       const elapsed = measureMs(start);
       logResult("Repository fallbackSearch (via Service)", elapsed, targetMs, results.length);

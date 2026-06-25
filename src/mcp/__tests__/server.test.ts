@@ -2,8 +2,9 @@
  * Zettelkasten MCP Server 测试
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { ZettelkastenMCPServer } from "../server.js";
+import { createTestDir, cleanupTestDir } from "../../testing/test-fs.js";
 import type { DatabaseSync } from "node:sqlite";
 
 // Mock dependencies
@@ -18,16 +19,26 @@ const mockLLMProvider = {
 
 describe("ZettelkastenMCPServer", () => {
   let server: ZettelkastenMCPServer;
+  let testDir: string;
+  let dbPath: string;
+  let notesBaseDir: string;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    testDir = createTestDir("zk-mcp-");
+    dbPath = `${testDir}/db.sqlite`;
+    notesBaseDir = `${testDir}/notes`;
+  });
+
+  afterEach(() => {
+    cleanupTestDir(testDir);
   });
 
   describe("构造函数和配置", () => {
     it("应该正确初始化只读服务器", () => {
-      server = new ZettelkastenMCPServer(mockDb, "/test/path", {
-        dbPath: "/test/db.sqlite",
-        notesBaseDir: "/test/notes",
+      server = new ZettelkastenMCPServer(mockDb, testDir, {
+        dbPath: dbPath,
+        notesBaseDir: notesBaseDir,
         enableReadOnlyTools: true,
         enableReadWriteTools: false,
       });
@@ -37,9 +48,9 @@ describe("ZettelkastenMCPServer", () => {
     });
 
     it("应该正确初始化读写服务器", () => {
-      server = new ZettelkastenMCPServer(mockDb, "/test/path", {
-        dbPath: "/test/db.sqlite",
-        notesBaseDir: "/test/notes",
+      server = new ZettelkastenMCPServer(mockDb, testDir, {
+        dbPath: dbPath,
+        notesBaseDir: notesBaseDir,
         enableReadOnlyTools: true,
         enableReadWriteTools: true,
         llmProvider: mockLLMProvider as any,
@@ -50,9 +61,9 @@ describe("ZettelkastenMCPServer", () => {
     });
 
     it("应该正确初始化完全禁用工具的服务器", () => {
-      server = new ZettelkastenMCPServer(mockDb, "/test/path", {
-        dbPath: "/test/db.sqlite",
-        notesBaseDir: "/test/notes",
+      server = new ZettelkastenMCPServer(mockDb, testDir, {
+        dbPath: dbPath,
+        notesBaseDir: notesBaseDir,
         enableReadOnlyTools: false,
         enableReadWriteTools: false,
       });
@@ -64,9 +75,9 @@ describe("ZettelkastenMCPServer", () => {
 
   describe("getTools", () => {
     it("只读服务器应该返回正确的工具数量", () => {
-      const readonlyServer = new ZettelkastenMCPServer(mockDb, "/test/path", {
-        dbPath: "/test/db.sqlite",
-        notesBaseDir: "/test/notes",
+      const readonlyServer = new ZettelkastenMCPServer(mockDb, testDir, {
+        dbPath: dbPath,
+        notesBaseDir: notesBaseDir,
         enableReadOnlyTools: true,
         enableReadWriteTools: false,
       });
@@ -86,9 +97,9 @@ describe("ZettelkastenMCPServer", () => {
     });
 
     it("读写服务器应该返回正确的工具数量", () => {
-      const rwServer = new ZettelkastenMCPServer(mockDb, "/test/path", {
-        dbPath: "/test/db.sqlite",
-        notesBaseDir: "/test/notes",
+      const rwServer = new ZettelkastenMCPServer(mockDb, testDir, {
+        dbPath: dbPath,
+        notesBaseDir: notesBaseDir,
         enableReadOnlyTools: true,
         enableReadWriteTools: true,
         llmProvider: mockLLMProvider as any,
@@ -111,9 +122,9 @@ describe("ZettelkastenMCPServer", () => {
     });
 
     it("完全禁用的服务器应该返回0个工具", () => {
-      const disabledServer = new ZettelkastenMCPServer(mockDb, "/test/path", {
-        dbPath: "/test/db.sqlite",
-        notesBaseDir: "/test/notes",
+      const disabledServer = new ZettelkastenMCPServer(mockDb, testDir, {
+        dbPath: dbPath,
+        notesBaseDir: notesBaseDir,
         enableReadOnlyTools: false,
         enableReadWriteTools: false,
       });
@@ -123,9 +134,9 @@ describe("ZettelkastenMCPServer", () => {
     });
 
     it("工具应该有正确的描述", () => {
-      const descServer = new ZettelkastenMCPServer(mockDb, "/test/path", {
-        dbPath: "/test/db.sqlite",
-        notesBaseDir: "/test/notes",
+      const descServer = new ZettelkastenMCPServer(mockDb, testDir, {
+        dbPath: dbPath,
+        notesBaseDir: notesBaseDir,
         enableReadOnlyTools: true,
         enableReadWriteTools: true,
         llmProvider: mockLLMProvider as any,
@@ -137,9 +148,9 @@ describe("ZettelkastenMCPServer", () => {
     });
 
     it("工具应该有正确的输入模式", () => {
-      const schemaServer = new ZettelkastenMCPServer(mockDb, "/test/path", {
-        dbPath: "/test/db.sqlite",
-        notesBaseDir: "/test/notes",
+      const schemaServer = new ZettelkastenMCPServer(mockDb, testDir, {
+        dbPath: dbPath,
+        notesBaseDir: notesBaseDir,
         enableReadOnlyTools: true,
         enableReadWriteTools: true,
         llmProvider: mockLLMProvider as any,
@@ -159,18 +170,18 @@ describe("ZettelkastenMCPServer", () => {
     let roServer: ZettelkastenMCPServer;
 
     beforeEach(() => {
-      roServer = new ZettelkastenMCPServer(mockDb, "/test/path", {
-        dbPath: "/test/db.sqlite",
-        notesBaseDir: "/test/notes",
+      roServer = new ZettelkastenMCPServer(mockDb, testDir, {
+        dbPath: dbPath,
+        notesBaseDir: notesBaseDir,
         enableReadOnlyTools: true,
         enableReadWriteTools: false,
       });
     });
 
     it("zk_search_notes 应该抛出错误当只读工具被禁用", async () => {
-      const disabledServer = new ZettelkastenMCPServer(mockDb, "/test/path", {
-        dbPath: "/test/db.sqlite",
-        notesBaseDir: "/test/notes",
+      const disabledServer = new ZettelkastenMCPServer(mockDb, testDir, {
+        dbPath: dbPath,
+        notesBaseDir: notesBaseDir,
         enableReadOnlyTools: false,
         enableReadWriteTools: false,
       });

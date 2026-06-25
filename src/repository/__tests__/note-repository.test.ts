@@ -9,21 +9,24 @@ import {
   closeTestDatabase,
   createTestNoteData,
 } from "./test-helpers.js";
+import { createTestDir, cleanupTestDir } from "../../testing/test-fs.js";
 import type { DatabaseSync } from "node:sqlite";
 import type { NoteType, NoteFolder, LinkType } from "../../core/types.js";
 
 describe("NoteRepository", () => {
   let db: DatabaseSync;
   let repository: NoteRepository;
-  const notesDir = "/test/notes";
+  let notesDir: string;
 
   beforeEach(() => {
     db = createTestDatabase();
     repository = new NoteRepository(db);
+    notesDir = createTestDir("zk-note-repo-");
   });
 
   afterEach(() => {
     closeTestDatabase(db);
+    cleanupTestDir(notesDir);
   });
 
   describe("create", () => {
@@ -213,14 +216,14 @@ describe("NoteRepository", () => {
     it("should delete an existing note", async () => {
       const params = createTestNoteData({});
       const created = await repository.create(params, notesDir);
-      const result = repository.delete(created.id);
+      const result = await repository.delete(created.id);
       expect(result).toBe(true);
       const note = repository.get(created.id);
       expect(note).toBeNull();
     });
 
-    it("should return false for non-existent note", () => {
-      const result = repository.delete("non-existent");
+    it("should return false for non-existent note", async () => {
+      const result = await repository.delete("non-existent");
       expect(result).toBe(false);
     });
   });

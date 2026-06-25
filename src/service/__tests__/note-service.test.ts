@@ -17,21 +17,24 @@ import {
   closeTestDatabase,
   createTestNoteData,
 } from "../../repository/__tests__/test-helpers.js";
+import { createTestDir, cleanupTestDir } from "../../testing/test-fs.js";
 import type { DatabaseSync } from "node:sqlite";
 import type { NoteFolder, NoteStatus } from "../../core/types.js";
 
 describe("NoteService", () => {
   let db: DatabaseSync;
   let noteService: NoteService;
-  const basePath = "/test/notes";
+  let basePath: string;
 
   beforeEach(() => {
     db = createTestDatabase();
+    basePath = createTestDir("zk-note-svc-");
     noteService = new NoteService(db, basePath);
   });
 
   afterEach(() => {
     closeTestDatabase(db);
+    cleanupTestDir(basePath);
   });
 
   // ============================================================================

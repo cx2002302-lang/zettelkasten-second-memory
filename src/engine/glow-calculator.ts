@@ -109,9 +109,29 @@ export class GlowCalculator {
   }
 
   /**
+   * 如果统计表为空但笔记表有数据，自动触发一次重算
+   */
+  private ensureStats(): void {
+    const statsCount = (this.db
+      .prepare("SELECT COUNT(*) as c FROM zettel_note_stats")
+      .get() as { c: number }).c;
+    if (statsCount > 0) return;
+
+    const noteCount = (this.db
+      .prepare("SELECT COUNT(*) as c FROM zettel_notes")
+      .get() as { c: number }).c;
+    if (noteCount > 0) {
+      this.recalculateAll();
+    }
+  }
+
+  /**
    * 获取发光度排行
    */
   getRanking(options: GlowRankingOptions = {}): GlowMetrics[] {
+    // 如果缓存表为空但已有笔记，自动重算一次，避免首次调用返回空
+    this.ensureStats();
+
     const {
       limit = 20,
       statusFilter,
@@ -170,6 +190,9 @@ export class GlowCalculator {
    * 获取僵尸笔记（待归档候选）
    */
   findZombies(limit: number = 20): GlowMetrics[] {
+    // 如果缓存表为空但已有笔记，自动重算一次
+    this.ensureStats();
+
     const rows = this.db
       .prepare(
         `

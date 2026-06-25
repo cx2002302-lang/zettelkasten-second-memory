@@ -69,6 +69,10 @@ cp "$DEV_DIR/AGENTS.md" "$RELEASE_DIR/"
 mkdir -p "$RELEASE_DIR/docs"
 cp "$DEV_DIR/docs/TESTING_GUIDE.md" "$RELEASE_DIR/docs/" 2>/dev/null || true
 cp "$DEV_DIR/docs/COMPATIBILITY.md" "$RELEASE_DIR/docs/" 2>/dev/null || true
+if [ -d "$DEV_DIR/docs/assets" ]; then
+    mkdir -p "$RELEASE_DIR/docs/assets"
+    cp "$DEV_DIR/docs/assets/"* "$RELEASE_DIR/docs/assets/" 2>/dev/null || true
+fi
 
 # 4.1 清理发布文档中的内部信息
 log_info "[3.1/6] 清理文档中的内部信息..."

@@ -11,6 +11,9 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 PLUGIN_DIR="${PLUGIN_DIR:-$HOME/.openclaw/zettelkasten-plugin}"
 CONFIG_FILE="$HOME/.openclaw/openclaw.json"
 
+# shellcheck source=scripts/lib/compat.sh
+source "$SCRIPT_DIR/lib/compat.sh"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -115,30 +118,19 @@ if command -v openclaw >/dev/null 2>&1; then
     
     # BUG-001 修复: 清理 alsoAllow 中的无效条目（Skill ID 不应放入 alsoAllow）
     log_info "Checking tools.alsoAllow..."
+    ALLOWED_ENTRIES="zettelkasten"
+    if oc_version_ge "2026.6.0"; then
+        ALLOWED_ENTRIES="$ALLOWED_ENTRIES group:plugins"
+    fi
     python3 -c "
-import json, os, sys, subprocess
+import json, os, sys
 cfg_path = os.path.expanduser('~/.openclaw/openclaw.json')
 try:
-    version = subprocess.check_output(['openclaw','--version'], text=True, stderr=subprocess.DEVNULL)
-except Exception:
-    version = ''
-# OpenClaw >= 2026.6.x 支持 group:plugins 作为插件工具总控，低版本使用 zettelkasten
-supports_group_plugins = False
-import re
-m = re.search(r'(\d{4})\.(\d+)\.(\d+)', version)
-if m:
-    y, mon, d = map(int, m.groups())
-    if y > 2026 or (y == 2026 and mon >= 6):
-        supports_group_plugins = True
-try:
+    allowed = set('$ALLOWED_ENTRIES'.split())
     with open(cfg_path, 'r') as f:
         cfg = json.load(f)
     if 'tools' in cfg and 'alsoAllow' in cfg.get('tools', {}):
         original = cfg['tools']['alsoAllow']
-        # 保留 zk_ 前缀工具名、插件 ID zettelkasten 以及 2026.6.x 的 group:plugins
-        allowed = {'zettelkasten'}
-        if supports_group_plugins:
-            allowed.add('group:plugins')
         cleaned = [x for x in original if x.startswith('zk_') or x in allowed]
         removed = [x for x in original if not (x.startswith('zk_') or x in allowed)]
         if removed:

@@ -11,6 +11,9 @@ SKILL_DIR="${PROJECT_DIR}/skills/brain"
 VERSION_FILE="${SKILL_DIR}/VERSION"
 PROMPT_FILE="${SKILL_DIR}/PROMPT.md"
 
+# shellcheck source=scripts/lib/compat.sh
+source "${PROJECT_DIR}/scripts/lib/compat.sh"
+
 if [ ! -f "$PROMPT_FILE" ]; then
   echo "Error: PROMPT.md not found at $PROMPT_FILE" >&2
   exit 1
@@ -38,17 +41,14 @@ PROMPT=$(cat "$PROMPT_FILE" | sed \
   -e "s/{{TAG_LIMIT}}/${TAG_LIMIT}/g" \
   -e "s/{{AUTO_ARCHIVE}}/${AUTO_ARCHIVE}/g")
 
-# 检测 OpenClaw 版本，配置正确的工具策略
-OC_VERSION=$(openclaw --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
-if echo "$OC_VERSION" | grep -qE '^2026\.(6|7|8|9|[0-9]{2})\.'; then
-  # 2026.6.x+ 工具策略：插件工具通过 contracts.tools 声明，allowlist 可用 group:plugins 或插件 ID
-  openclaw config set tools.alsoAllow '["group:plugins"]' 2>/dev/null || true
-else
-  openclaw config set tools.alsoAllow '["zettelkasten"]' 2>/dev/null || true
-fi
+# 配置正确的工具策略
+TOOL_POLICY=$(oc_tool_policy_value)
+openclaw config set tools.alsoAllow "[\"$TOOL_POLICY\"]" 2>/dev/null || true
 
 # 写入 systemPromptOverride（2026.6.x+ 已移除该字段，忽略失败）
-if openclaw config set agents.defaults.systemPromptOverride "$PROMPT" 2>/dev/null; then
+OC_VERSION=$(oc_version)
+if oc_supports_system_prompt_override; then
+  openclaw config set agents.defaults.systemPromptOverride "$PROMPT" 2>/dev/null
   echo "✅ zettelkasten-brain systemPromptOverride set (version: ${VERSION})"
 else
   echo "⚠️ agents.defaults.systemPromptOverride not supported on OpenClaw ${OC_VERSION}; skipped"

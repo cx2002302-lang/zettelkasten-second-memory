@@ -116,9 +116,9 @@ openclaw agent --local --to +1234567890 \
 
 ## 6. TODO（兼容性专项）
 
-- [ ] 创建 `scripts/lib/compat.sh` 统一版本判断
-- [ ] 重构 `scripts/deploy.sh`、`scripts/setup-skill-prompt.sh`、`environments/compat-testing/scripts/deploy-zk-to-container.sh` 调用 compat.sh
-- [ ] 创建 `scripts/run-compat-matrix.sh`：本地一键跑 OpenClaw 2026.4.x / 2026.6.x / latest + Hermes latest
+- [x] 创建 `scripts/lib/compat.sh` 统一版本判断
+- [x] 重构 `scripts/deploy.sh`、`scripts/setup-skill-prompt.sh`、`environments/compat-testing/scripts/deploy-zk-to-container.sh` 调用 compat.sh
+- [x] 创建 `scripts/run-compat-matrix.sh`：本地一键跑 OpenClaw + Hermes 容器测试
 - [ ] （可选）添加 GitHub Actions workflow 运行兼容性矩阵
 - [ ] 在 `openclaw.plugin.json` 中补充 `toolMetadata`（若 OpenClaw 后续需要）
 - [ ] 监控上游 release notes，建立“破坏性变更”检查表

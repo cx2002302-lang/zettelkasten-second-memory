@@ -5,6 +5,12 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+COMPOSE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# shellcheck source=../../../scripts/lib/compat.sh
+source "$SCRIPT_DIR/../../../scripts/lib/compat.sh"
+
 CONTAINER="${1:-}"
 if [ -z "$CONTAINER" ]; then
   echo "Usage: $0 <container_name>"
@@ -17,28 +23,24 @@ if ! docker ps --format '{{.Names}}' | grep -qx "$CONTAINER"; then
   exit 1
 fi
 
+OC_VERSION=$(docker exec "$CONTAINER" openclaw --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unknown")
+echo "==> Detected OpenClaw version: $OC_VERSION"
+
 echo "==> Deploying Zettelkasten plugin to $CONTAINER..."
 docker exec "$CONTAINER" bash /opt/zettelkasten-source/scripts/deploy.sh
 
-echo "==> Ensuring tools.alsoAllow contains zettelkasten..."
-OC_VERSION=$(docker exec "$CONTAINER" openclaw --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unknown")
-if echo "$OC_VERSION" | grep -qE '^2026\.(6|7|8|9|[0-9]{2})\.'; then
-  # 2026.6.x 工具策略按工具名/组处理，plugin ID 不能直接出现在 allowlist 中
-  # group:plugins 包含所有已加载插件的工具（当前环境只有 zettelkasten）
-  docker exec "$CONTAINER" openclaw config set tools.alsoAllow '["group:plugins"]' 2>/dev/null || true
-else
-  docker exec "$CONTAINER" openclaw config set tools.alsoAllow '["zettelkasten"]' 2>/dev/null || true
-fi
+echo "==> Ensuring tools.alsoAllow is compatible..."
+TOOL_POLICY=$(tool_policy_for_version "$OC_VERSION")
+docker exec "$CONTAINER" openclaw config set tools.alsoAllow "[\"$TOOL_POLICY\"]" 2>/dev/null || true
 
 echo "==> Ensuring agents.defaults.skills contains zettelkasten-brain..."
 docker exec "$CONTAINER" openclaw config set agents.defaults.skills '["zettelkasten-brain"]' 2>/dev/null || true
 
 echo "==> Ensuring default agent model uses MiniMax (if MINIMAX_API_KEY present)..."
 if docker exec "$CONTAINER" env | grep -q "MINIMAX_API_KEY"; then
-  OC_VERSION=$(docker exec "$CONTAINER" openclaw --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unknown")
   # OpenClaw >= 2026.6.x 内置 minimax provider 走 anthropic-messages，与 sk-cp- 类 CN key 不兼容
   # 因此为其配置 OpenAI-compatible 自定义 provider
-  if echo "$OC_VERSION" | grep -qE '^2026\.(6|7|8|9|[0-9]{2})\.'; then
+  if version_ge "$OC_VERSION" "2026.6.0"; then
     echo "   Detected OpenClaw $OC_VERSION, configuring minimax-openai compatible provider..."
     docker exec "$CONTAINER" node -e "
 const fs = require('fs');
@@ -77,7 +79,7 @@ fs.writeFileSync('/home/node/.openclaw/openclaw.json', JSON.stringify(cfg, null,
 fi
 
 echo "==> Configuring gateway for agent CLI tests on 2026.4.x..."
-if echo "$OC_VERSION" | grep -qE '^2026\.4\.'; then
+if [[ "$OC_VERSION" =~ ^2026\.4\. ]]; then
   # 2026.4.x embedded agent --local 会挂起，改用 gateway 模式
   # 需要 bind=loopback 使 agent CLI 能连上 gateway，并禁用 bonjour 防止容器内 mDNS 崩溃导致 gateway 重启
   docker exec "$CONTAINER" openclaw config set gateway.bind loopback 2>/dev/null || true
@@ -92,14 +94,16 @@ fs.writeFileSync('/home/node/.openclaw/openclaw.json', JSON.stringify(cfg, null,
 fi
 
 echo "==> Setting up zettelkasten-brain skill prompt (best-effort)..."
-# OpenClaw >= 2026.6.x 已移除 agents.defaults.systemPromptOverride，此步骤可能失败
-docker exec "$CONTAINER" bash /opt/zettelkasten-source/scripts/setup-skill-prompt.sh 2>/dev/null || echo "   (skill prompt not applicable for this OpenClaw version)"
-
-# setup-skill-prompt.sh 会把 alsoAllow 重置为 zettelkasten，2026.6.x 需要改回 group:plugins
-if echo "$OC_VERSION" | grep -qE '^2026\.(6|7|8|9|[0-9]{2})\.'; then
-  echo "==> Re-applying 2026.6.x tool policy (group:plugins)..."
-  docker exec "$CONTAINER" openclaw config set tools.alsoAllow '["group:plugins"]' 2>/dev/null || true
+if supports_system_prompt_override_for_version "$OC_VERSION"; then
+  docker exec "$CONTAINER" bash /opt/zettelkasten-source/scripts/setup-skill-prompt.sh 2>/dev/null || echo "   (skill prompt setup failed or not applicable)"
+else
+  echo "   OpenClaw $OC_VERSION does not support systemPromptOverride; skipping skill prompt setup"
 fi
+
+# setup-skill-prompt.sh 会把 alsoAllow 重置为 zettelkasten，需要按版本重新应用
+TOOL_POLICY=$(tool_policy_for_version "$OC_VERSION")
+echo "==> Re-applying tool policy ($TOOL_POLICY)..."
+docker exec "$CONTAINER" openclaw config set tools.alsoAllow "[\"$TOOL_POLICY\"]" 2>/dev/null || true
 
 echo "==> Restarting container to apply config changes..."
 docker restart "$CONTAINER"

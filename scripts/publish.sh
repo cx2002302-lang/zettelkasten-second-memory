@@ -62,14 +62,13 @@ log_info "[3/6] 复制文档和配置..."
 cp "$DEV_DIR/README.md" "$RELEASE_DIR/"
 cp "$DEV_DIR/README.zh.md" "$RELEASE_DIR/" 2>/dev/null || true
 cp "$DEV_DIR/LICENSE" "$RELEASE_DIR/"
-cp "$DEV_DIR/CHANGELOG.md" "$RELEASE_DIR/"
+# CHANGELOG.md / DEVELOPMENT.md 含内部路径或已移除文件引用，暂不入发布包
 cp "$DEV_DIR/CONTRIBUTING.md" "$RELEASE_DIR/" 2>/dev/null || true
-cp "$DEV_DIR/DEVELOPMENT.md" "$RELEASE_DIR/" 2>/dev/null || true
 cp "$DEV_DIR/package.json" "$RELEASE_DIR/"
 cp "$DEV_DIR/AGENTS.md" "$RELEASE_DIR/"
 
 mkdir -p "$RELEASE_DIR/docs"
-cp "$DEV_DIR/docs/TESTING_GUIDE.md" "$RELEASE_DIR/docs/" 2>/dev/null || true
+# TESTING_GUIDE.md 包含开发环境专用脚本和路径，不进入发布目录
 cp "$DEV_DIR/docs/COMPATIBILITY.md" "$RELEASE_DIR/docs/" 2>/dev/null || true
 if [ -d "$DEV_DIR/docs/assets" ]; then
     mkdir -p "$RELEASE_DIR/docs/assets"

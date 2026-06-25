@@ -90,7 +90,7 @@ oc_tool_policy_value        # 输出 "group:plugins" 或 "zettelkasten"
 
 ---
 
-## 5. 测试命令
+## 4. 测试命令
 
 ```bash
 # 1. 单元测试（1724 cases）
@@ -106,12 +106,12 @@ bash environments/compat-testing/scripts/run-hermes-zk-e2e.sh hermes-latest
 bash environments/compat-testing/scripts/run-hermes-zk-e2e-real.sh hermes-latest \
   /home/myxia/.openclaw/project/zettelkasten-secrets/minimax.env
 
-# 5. OpenClaw agent 工具可见性
+# 4. OpenClaw agent 工具可见性
 openclaw agent --local --to +1234567890 \
   --message '搜索 Zettelkasten 里关于 testing 的笔记' \
   --verbose on --json --timeout 60
 
-# 6. 生产环境 OpenClaw 验证（2026.4.24 实测通过）
+# 5. 生产环境 OpenClaw 验证（2026.4.24 实测通过）
 bash scripts/deploy.sh
 openclaw gateway restart
 openclaw zk doctor
@@ -123,7 +123,7 @@ openclaw agent --local --to +1234567890 \
 
 ---
 
-## 6. TODO（兼容性专项）
+## 5. TODO（兼容性专项）
 
 - [x] 创建 `scripts/lib/compat.sh` 统一版本判断
 - [x] 重构 `scripts/deploy.sh`、`scripts/setup-skill-prompt.sh`、`environments/compat-testing/scripts/deploy-zk-to-container.sh` 调用 compat.sh
@@ -134,8 +134,6 @@ openclaw agent --local --to +1234567890 \
 
 ---
 
-## 7. 相关文档
+## 6. 相关文档
 
-- 详细部署计划：`plans/openclaw-hermes-compatibility-test-plan.md`
 - 测试指南：`docs/TESTING_GUIDE.md`
-- 版本策略：`docs/COMPAT_TEST_VERSION_POLICY.md`

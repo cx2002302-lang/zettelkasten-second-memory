@@ -99,41 +99,6 @@ graph TD
 
 ---
 
-## 📐 System Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         OpenClaw Gateway                             │
-│                      (MCP Protocol Layer)                            │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │
-┌──────────────────────────┼──────────────────────────────────────────┐
-│                          │                                          │
-│  ┌───────────────────────▼────────┐  ┌──────────────────────────┐  │
-│  │      Hermes Agent (optional)   │  │   Zettelkasten Plugin    │  │
-│  │   via Streamable HTTP MCP      │  │                          │  │
-│  └──────────────┬─────────────────┘  │  ┌─────────┐  ┌────────┐ │  │
-│                 │                    │  │  MCP    │  │  CLI   │ │  │
-│                 └────────────────────┼──┤ Tools   │  │Commands│ │  │
-│                                      │  └────┬────┘  └───┬────┘ │  │
-│                                      │       └─────────────┘      │  │
-│                                      │              │              │  │
-│                                      │  ┌──────────┬───────────┐  │  │
-│                                      │  │ Service  │ Repository│  │  │
-│                                      │  │ Storage  │   Core    │  │  │
-│                                      │  └──────────┴───────────┘  │  │
-│                                      │              │              │  │
-│                                      │        SQLite + Markdown    │  │
-│                                      └──────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
-
-
----
-
-> 🇨🇳 **Chinese users**: [点击这里查看中文介绍](README.zh.md)
-
----
-
 ## 🚀 Quick Start
 
 ### Requirements
@@ -200,29 +165,6 @@ hermes mcp test zettelkasten
 
 See [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) for version-specific notes.
 
-### Use as a Standalone Library
-
-```typescript
-import { createZettelkasten } from "zettelkasten-second-memory";
-
-// Create a client
-const zk = await createZettelkasten("./data/zettelkasten.db", "./data");
-
-// Create a note
-const note = await zk.createNote({
-  title: "Hello Zettelkasten",
-  content: "This is my first atomic note.",
-  tags: ["intro", "demo"],
-  type: "atomic",
-});
-
-// Search
-const results = zk.searchNotes("atomic note", 10);
-console.log(results);
-```
-
----
-
 ## 🛠️ CLI Commands
 
 | Command | Description |
@@ -274,7 +216,7 @@ console.log(results);
 
 ```
 zettelkasten-second-memory/
-├── src/
+├── src/                    # Plugin source code
 │   ├── core/               # Type definitions, constants, utilities
 │   ├── storage/            # Database schema, FTS5, template manager
 │   ├── repository/         # Data access layer (notes, links, tags, reviews...)
@@ -282,11 +224,10 @@ zettelkasten-second-memory/
 │   ├── integration/        # OpenClaw integration (agent config, scheduler, hooks)
 │   ├── mcp/                # MCP tool definitions and server
 │   ├── plugin/             # OpenClaw plugin entry and manifest
-│   ├── skills/brain/       # AI Skill (prompts, rules, evolution scripts)
 │   ├── examples/           # Usage examples
 │   └── index.ts            # Library entry point
+├── skills/brain/           # AI Skill (prompts, rules, workflows)
 ├── scripts/                # Deployment scripts
-├── plans/                  # Design documents and architecture diagrams
 ├── docs/                   # Documentation
 ├── package.json
 ├── LICENSE
@@ -301,7 +242,7 @@ This project includes a **Brain Skill** that enables AI agents to automatically 
 
 ```bash
 # Install the Skill
-cp -r src/skills/brain ~/.openclaw/skills/zettelkasten-brain
+cp -r skills/brain ~/.openclaw/skills/zettelkasten-brain
 
 # Activate the Skill
 openclaw config set agents.defaults.skills '["zettelkasten-brain"]'
@@ -342,9 +283,6 @@ FTS5 virtual tables provide full-text search capabilities.
 ```bash
 # Run all tests
 npm test
-
-# Watch mode
-npm run test:watch
 ```
 
 Current test coverage:

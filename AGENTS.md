@@ -131,6 +131,10 @@ docker exec hermes-latest hermes mcp test zettelkasten
 
 # Hermes + Zettelkasten 端到端测试（无需 API Key，使用 mock LLM）
 bash environments/compat-testing/scripts/run-hermes-zk-e2e.sh hermes-latest
+
+# Hermes + Zettelkasten 真实 LLM 端到端测试（MiniMax）
+# 需先准备 environments/compat-testing/secrets/minimax.env
+bash environments/compat-testing/scripts/run-hermes-zk-e2e-real.sh hermes-latest
 ```
 
 ## Zettelkasten 操作铁律（每次涉及 zk 时必须遵守）

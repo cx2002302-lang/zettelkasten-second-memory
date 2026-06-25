@@ -19,7 +19,7 @@
 | 组件 | 当前验证版本 | 最低要求 | 备注 |
 |------|--------------|----------|------|
 | Node.js | 22.22.2 | >= 22.14.0 | `node:sqlite` 需要 Node 22+ |
-| OpenClaw | 2026.6.10 | >= 2026.4.23 | 2026.6.x 引入 `contracts.tools` |
+| OpenClaw | 2026.6.10（容器）<br>2026.4.24（生产环境） | >= 2026.4.23 | 2026.6.x 引入 `contracts.tools`；2026.4.x 已部署验证 |
 | Hermes Agent | v0.17.0 (latest) | 实验性支持 | 通过 MCP HTTP bridge 接入 |
 | MCP Protocol | 2024-11-05 ~ 2025-11-25 | 跟随 SDK | SDK 已支持协商 |
 
@@ -109,7 +109,16 @@ bash environments/compat-testing/scripts/run-hermes-zk-e2e-real.sh hermes-latest
 # 5. OpenClaw agent 工具可见性
 openclaw agent --local --to +1234567890 \
   --message '搜索 Zettelkasten 里关于 testing 的笔记' \
-  --verbose on --json --timeout 20
+  --verbose on --json --timeout 60
+
+# 6. 生产环境 OpenClaw 验证（2026.4.24 实测通过）
+bash scripts/deploy.sh
+openclaw gateway restart
+openclaw zk doctor
+openclaw zk search testing
+openclaw agent --local --to +1234567890 \
+  --message '搜索我的 Zettelkasten 里关于 testing 的笔记，只返回标题和 ID' \
+  --verbose on --json --timeout 60
 ```
 
 ---

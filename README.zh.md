@@ -157,29 +157,6 @@ hermes mcp test zettelkasten
 
 版本兼容性细节请参见 [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md)。
 
-### 作为独立库使用
-
-```typescript
-import { createZettelkasten } from "zettelkasten-second-memory";
-
-// 创建客户端
-const zk = await createZettelkasten("./data/zettelkasten.db", "./data");
-
-// 创建笔记
-const note = await zk.createNote({
-  title: "Hello Zettelkasten",
-  content: "这是我的第一条原子笔记。",
-  tags: ["intro", "demo"],
-  type: "atomic",
-});
-
-// 搜索
-const results = zk.searchNotes("原子笔记", 10);
-console.log(results);
-```
-
----
-
 ## 🛠️ CLI 命令
 
 | 命令 | 说明 |
@@ -231,7 +208,7 @@ console.log(results);
 
 ```
 zettelkasten-second-memory/
-├── src/
+├── src/                    # 插件源码
 │   ├── core/               # 类型定义、常量、工具函数
 │   ├── storage/            # 数据库 Schema、FTS5、模板管理
 │   ├── repository/         # 数据访问层（笔记、链接、标签、审核…）
@@ -239,11 +216,10 @@ zettelkasten-second-memory/
 │   ├── integration/        # OpenClaw 集成（Agent 配置、定时任务、会话钩子）
 │   ├── mcp/                # MCP 工具定义与服务器
 │   ├── plugin/             # OpenClaw 插件入口与清单
-│   ├── skills/brain/       # AI Skill（提示词、规则、进化脚本）
 │   ├── examples/           # 使用示例
 │   └── index.ts            # 库入口
+├── skills/brain/           # AI Skill（提示词、规则、工作流）
 ├── scripts/                # 部署脚本
-├── plans/                  # 设计文档与架构图
 ├── docs/                   # 使用文档
 ├── package.json
 ├── LICENSE
@@ -258,7 +234,7 @@ zettelkasten-second-memory/
 
 ```bash
 # 安装 Skill
-cp -r src/skills/brain ~/.openclaw/skills/zettelkasten-brain
+cp -r skills/brain ~/.openclaw/skills/zettelkasten-brain
 
 # 激活 Skill
 openclaw config set agents.defaults.skills '["zettelkasten-brain"]'
@@ -299,9 +275,6 @@ FTS5 虚拟表提供全文搜索能力。
 ```bash
 # 运行所有测试
 npm test
-
-# 监视模式
-npm run test:watch
 ```
 
 当前测试覆盖：

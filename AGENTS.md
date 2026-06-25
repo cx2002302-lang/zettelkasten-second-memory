@@ -2,11 +2,11 @@
 
 ## 系统版本信息（每次思考必须考虑）
 
-- **OpenClaw 版本**: 2026.6.10（兼容 2026.4.23+）
-- **Zettelkasten 插件版本**: 1.0.0-beta.7
-- **Skill 版本**: 1.0.0-beta.2
+- **OpenClaw 版本**: 2026.4.24 / 2026.6.x（兼容 >= 2026.4.23）
+- **Zettelkasten 插件版本**: v1.0.0-beta.8.1
+- **Skill 版本**: v1.0.0-beta.3
+- **Hermes Agent**: v0.17.0+（实验性支持）
 - **Node 要求**: >= 22.14.0（`node:sqlite` 需要 Node 22+）
-- **OpenClaw 最低要求**: >= 2026.4.23
 
 ## 兼容性保障索引
 
@@ -74,21 +74,19 @@ Skill 目录注册（两种路径都兼容）：
 ## 项目结构
 
 ```
-/home/myxia/.openclaw/project/zettelkasten/      # 当前项目根目录
-├── src/                                         # 完整插件源码
-│   ├── plugin/index.ts                          # 插件入口（zk init + CLI 命令）
-│   ├── skills/brain/                            # Brain Skill（beta）
-│   ├── service/note-service.ts                  # 笔记业务层
-│   ├── storage/db-schema.ts                     # 数据库 Schema（约 15 张表）
+.                           # 项目根目录
+├── src/                    # 完整插件源码
+│   ├── plugin/index.ts     # 插件入口（zk init + CLI 命令）
+│   ├── service/            # 业务层
+│   ├── storage/db-schema.ts# 数据库 Schema
+│   ├── mcp/                # MCP 工具与 HTTP bridge
 │   └── ...
-├── zettelkasten-release/                        # 清理后的发布目录
-├── zettelkasten-github/                         # GitHub 镜像副本
-├── releases/                                    # 发布包
-│   ├── zettelkasten-plugin-1.0.0-beta.7.tar.gz
-│   └── zettelkasten-skill-v1.0.0-beta.6.tar.gz
-├── scripts/                                     # 部署与辅助脚本
-├── skills/                                      # Brain Skill 源码
-└── plans/                                       # 设计文档
+├── skills/brain/           # Brain Skill（beta）
+├── scripts/                # 部署与辅助脚本
+├── docs/                   # 兼容性/测试/使用文档
+├── package.json
+├── README.md
+└── LICENSE
 ```
 
 ## 关键修复历史
@@ -128,16 +126,10 @@ openclaw config set tools.alsoAllow '["group:plugins"]'
 openclaw plugins registry --refresh
 openclaw gateway restart
 
-# Hermes Agent 接入（测试环境）
+# Hermes Agent 接入
 npm run build:bridge
-bash <test-env>/scripts/deploy-zk-to-container.sh <openclaw-container>
-bash <test-env>/scripts/setup-hermes-mcp.sh <hermes-container> <openclaw-container>
-docker exec <hermes-container> hermes mcp test zettelkasten
-
-# Hermes + Zettelkasten 端到端测试（无需 API Key，使用 mock LLM）
-bash <test-env>/scripts/run-hermes-zk-e2e.sh <hermes-container>
-
-bash <test-env>/scripts/run-hermes-zk-e2e-real.sh <hermes-container>
+# 启动 MCP HTTP bridge 后，在 Hermes 配置中添加 http 类型 MCP server
+# 详细步骤见 docs/COMPATIBILITY.md
 ```
 
 ## Zettelkasten 操作铁律（每次涉及 zk 时必须遵守）
@@ -148,7 +140,7 @@ bash <test-env>/scripts/run-hermes-zk-e2e-real.sh <hermes-container>
 > - `zk_search_notes` — 检索
 > - `zk_create_note` — 创建
 > - `zk_update_note` — 更新
-> - `zk_create_link` / `zk_create_note` / `zk_update_note` — 关联与写入
+> - `zk_create_link` — 创建链接；`zk_create_note` / `zk_update_note` — 写入
 > - `zk_get_note` — 读取
 >
 > **违反后果**: 直接操作 SQLite 会导致 FTS 索引不一致、链接表损坏、笔记状态丢失。任何绕过 Skill 规则的操作都是不可接受的。
@@ -157,4 +149,4 @@ bash <test-env>/scripts/run-hermes-zk-e2e-real.sh <hermes-container>
 
 - **不要用** `zettelkasten-deployment/` 子集，统一用本项目 `src/` 完整版
 - **测试环境** — 当前环境 Node v22.22.2，1724 个测试全部通过
-- **Git** — 主仓库为当前目录 `/home/myxia/.openclaw/project/zettelkasten/`，最近提交 `备份: v1.0.0-beta.7 发布完成`
+- **Git** — 主仓库即本项目根目录；提交前请确保 npm test 通过

@@ -65,6 +65,42 @@
 
 ## 📐 System Architecture
 
+```mermaid
+graph TD
+    OG[OpenClaw Gateway<br/>MCP Protocol Layer]
+    HG[Hermes Agent<br/>optional via Streamable HTTP MCP]
+
+    subgraph ZK[Zettelkasten Plugin]
+        MT[MCP Tools]
+        CLI[CLI Commands]
+        S[Service Layer]
+        R[Repository Layer]
+        ST[Storage Layer]
+        C[Core Types]
+    end
+
+    DB[(SQLite + Markdown)]
+
+    OG --> MT
+    HG --> MT
+    MT --> S
+    CLI --> S
+    S --> R
+    R --> ST
+    ST --> DB
+    C --> S
+    C --> R
+    C --> ST
+```
+
+---
+
+> 🇨🇳 **Looking for Chinese documentation?** [点击这里查看简体中文介绍](README.zh.md)
+
+---
+
+## 📐 System Architecture
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         OpenClaw Gateway                             │

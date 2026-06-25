@@ -61,31 +61,32 @@
 
 ## 📐 系统架构
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         OpenClaw Gateway                             │
-│                      (MCP Protocol Layer)                            │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │
-┌──────────────────────────┼──────────────────────────────────────────┐
-│                          │                                          │
-│  ┌───────────────────────▼────────┐  ┌──────────────────────────┐  │
-│  │      Hermes Agent（可选）       │  │   Zettelkasten Plugin    │  │
-│  │   通过 Streamable HTTP MCP     │  │                          │  │
-│  └──────────────┬─────────────────┘  │  ┌─────────┐  ┌────────┐ │  │
-│                 │                    │  │  MCP    │  │  CLI   │ │  │
-│                 └────────────────────┼──┤ Tools   │  │Commands│ │  │
-│                                      │  └────┬────┘  └───┬────┘ │  │
-│                                      │       └─────────────┘      │  │
-│                                      │              │              │  │
-│                                      │  ┌──────────┬───────────┐  │  │
-│                                      │  │ Service  │ Repository│  │  │
-│                                      │  │ Storage  │   Core    │  │  │
-│                                      │  └──────────┴───────────┘  │  │
-│                                      │              │              │  │
-│                                      │        SQLite + Markdown    │  │
-│                                      └──────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    OG[OpenClaw Gateway<br/>MCP Protocol Layer]
+    HG[Hermes Agent<br/>可选，通过 Streamable HTTP MCP]
+
+    subgraph ZK[Zettelkasten Plugin]
+        MT[MCP Tools]
+        CLI[CLI Commands]
+        S[Service Layer]
+        R[Repository Layer]
+        ST[Storage Layer]
+        C[Core Types]
+    end
+
+    DB[(SQLite + Markdown)]
+
+    OG --> MT
+    HG --> MT
+    MT --> S
+    CLI --> S
+    S --> R
+    R --> ST
+    ST --> DB
+    C --> S
+    C --> R
+    C --> ST
 ```
 
 ---

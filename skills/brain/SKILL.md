@@ -1,8 +1,8 @@
 # Zettelkasten Brain Skill
 
-**ID**: `zettelkasten-brain` | **Version**: 1.0.0-beta.2 | **OpenClaw**: >= 2026.4.24
+**ID**: `zettelkasten-brain` | **Version**: 1.0.0-beta.2 | **OpenClaw**: >= 2026.4.23 | **Hermes Agent**: v0.17.0+（实验性）
 
-将 OpenClaw 变成你的**第二记忆大脑**。AI 代理自动把对话中的知识保存到 Zettelkasten，建立双向链接，评估知识健康度，并在需要时检索。
+将 OpenClaw / Hermes Agent 变成你的**第二记忆大脑**。AI 代理自动把对话中的知识保存到 Zettelkasten，建立双向链接，评估知识健康度，并在需要时检索。
 
 ---
 

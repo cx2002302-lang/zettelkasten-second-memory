@@ -128,6 +128,17 @@ openclaw config set tools.alsoAllow '["group:plugins"]'
 openclaw plugins registry --refresh
 openclaw gateway restart
 
+# Hermes Agent 接入（测试环境）
+npm run build:bridge
+bash <test-env>/scripts/deploy-zk-to-container.sh <openclaw-container>
+bash <test-env>/scripts/setup-hermes-mcp.sh <hermes-container> <openclaw-container>
+docker exec <hermes-container> hermes mcp test zettelkasten
+
+# Hermes + Zettelkasten 端到端测试（无需 API Key，使用 mock LLM）
+bash <test-env>/scripts/run-hermes-zk-e2e.sh <hermes-container>
+
+bash <test-env>/scripts/run-hermes-zk-e2e-real.sh <hermes-container>
+```
 
 ## Zettelkasten 操作铁律（每次涉及 zk 时必须遵守）
 

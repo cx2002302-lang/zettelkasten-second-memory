@@ -54,6 +54,8 @@ mkdir -p "$RELEASE_DIR/src"
 cp -r "$DEV_DIR/src/"* "$RELEASE_DIR/src/"
 # src/skills/brain 与根目录 skills/brain 重复，且包含旧版本/运行时数据，发布时排除
 rm -rf "$RELEASE_DIR/src/skills"
+# PHASE* / INTEGRATION.md 是内部阶段完成文档，路径已过时，发布时排除以避免死链
+rm -f "$RELEASE_DIR/src/PHASE"*.md "$RELEASE_DIR/src/INTEGRATION.md"
 
 # 4. 复制文档和配置
 log_info "[3/6] 复制文档和配置..."

@@ -3,6 +3,7 @@ zettelkasten-release/
 node_modules/
 .audit-reports/
 releases/
+dist/
 
 # 本地运行时数据（如本地 zettelkasten DB）
 ~/

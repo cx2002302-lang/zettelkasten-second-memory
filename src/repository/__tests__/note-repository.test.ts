@@ -213,14 +213,14 @@ describe("NoteRepository", () => {
     it("should delete an existing note", async () => {
       const params = createTestNoteData({});
       const created = await repository.create(params, notesDir);
-      const result = repository.delete(created.id);
+      const result = await repository.delete(created.id);
       expect(result).toBe(true);
       const note = repository.get(created.id);
       expect(note).toBeNull();
     });
 
-    it("should return false for non-existent note", () => {
-      const result = repository.delete("non-existent");
+    it("should return false for non-existent note", async () => {
+      const result = await repository.delete("non-existent");
       expect(result).toBe(false);
     });
   });

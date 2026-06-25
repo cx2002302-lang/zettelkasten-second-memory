@@ -1,0 +1,13 @@
+# Hermes 容器内 MCP 配置模板
+# 由 setup-hermes-mcp.sh 写入 /root/.hermes/config.yaml
+model:
+  default: openai/gpt-4.1
+
+mcp_servers:
+  zettelkasten:
+    type: http
+    url: "http://openclaw-latest:9090/mcp"
+    enabled: true
+    # 如需认证可在此添加 headers
+    # headers:
+    #   Authorization: "Bearer ${ZETTELKASTEN_MCP_TOKEN}"

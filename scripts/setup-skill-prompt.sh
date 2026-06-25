@@ -38,11 +38,20 @@ PROMPT=$(cat "$PROMPT_FILE" | sed \
   -e "s/{{TAG_LIMIT}}/${TAG_LIMIT}/g" \
   -e "s/{{AUTO_ARCHIVE}}/${AUTO_ARCHIVE}/g")
 
-# 确保 alsoAllow 包含 zettelkasten（不破坏现有配置）
-openclaw config set tools.alsoAllow '["zettelkasten"]' 2>/dev/null || true
+# 检测 OpenClaw 版本，配置正确的工具策略
+OC_VERSION=$(openclaw --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
+if echo "$OC_VERSION" | grep -qE '^2026\.(6|7|8|9|[0-9]{2})\.'; then
+  # 2026.6.x+ 工具策略：插件工具通过 contracts.tools 声明，allowlist 可用 group:plugins 或插件 ID
+  openclaw config set tools.alsoAllow '["group:plugins"]' 2>/dev/null || true
+else
+  openclaw config set tools.alsoAllow '["zettelkasten"]' 2>/dev/null || true
+fi
 
-# 写入 systemPromptOverride
-openclaw config set agents.defaults.systemPromptOverride "$PROMPT"
+# 写入 systemPromptOverride（2026.6.x+ 已移除该字段，忽略失败）
+if openclaw config set agents.defaults.systemPromptOverride "$PROMPT" 2>/dev/null; then
+  echo "✅ zettelkasten-brain systemPromptOverride set (version: ${VERSION})"
+else
+  echo "⚠️ agents.defaults.systemPromptOverride not supported on OpenClaw ${OC_VERSION}; skipped"
+fi
 
-echo "✅ zettelkasten-brain systemPromptOverride set (version: ${VERSION})"
 echo "   Next: openclaw gateway restart"

@@ -9,6 +9,7 @@
  */
 
 import type { DatabaseSync } from "node:sqlite";
+import { join } from "node:path";
 import { NoteRepository } from "../repository/note-repository.js";
 import { LinkRepository } from "../repository/link-repository.js";
 import { TemplateManager } from "../storage/template-manager.js";
@@ -56,9 +57,9 @@ export class NoteService {
     private basePath: string,
     config: Partial<NoteServiceConfig> = {}
   ) {
-    this.noteRepo = new NoteRepository(db);
+    this.templateManager = new TemplateManager(join(basePath, "templates"));
+    this.noteRepo = new NoteRepository(db, this.templateManager);
     this.linkRepo = new LinkRepository(db);
-    this.templateManager = new TemplateManager(basePath);
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
@@ -69,6 +70,13 @@ export class NoteService {
     params: CreateNoteParams,
     options: CreateNoteOptions = {}
   ): Promise<ZettelNote> {
+    // 确保模板目录与默认模板存在（失败时不阻塞 DB 写入）
+    try {
+      await this.templateManager.init();
+    } catch {
+      // 无写入权限时跳过文件同步
+    }
+
     const { confidence = DEFAULT_CONFIDENCE, source = "manual", skipLinkParsing = false } = options;
 
     // 输入校验
@@ -133,6 +141,13 @@ export class NoteService {
     id: string,
     params: UpdateNoteParams
   ): Promise<ZettelNote | null> {
+    // 确保模板目录存在（失败时不阻塞 DB 写入）
+    try {
+      await this.templateManager.init();
+    } catch {
+      // 无写入权限时跳过文件同步
+    }
+
     const existing = await this.noteRepo.get(id);
     if (!existing) return null;
 
@@ -172,8 +187,8 @@ export class NoteService {
     await this.linkRepo.deleteBySource(id);
     await this.linkRepo.deleteByTarget(id);
 
-    // 删除笔记
-    const deleted = this.noteRepo.delete(id);
+    // 删除笔记（含 Markdown 文件）
+    const deleted = await this.noteRepo.delete(id);
     return deleted;
   }
 

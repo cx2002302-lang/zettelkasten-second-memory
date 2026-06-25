@@ -2,11 +2,26 @@
 
 ## 系统版本信息（每次思考必须考虑）
 
-- **OpenClaw 版本**: 2026.4.24
+- **OpenClaw 版本**: 2026.6.10（兼容 2026.4.23+）
 - **Zettelkasten 插件版本**: 1.0.0-beta.7
 - **Skill 版本**: 1.0.0-beta.2
 - **Node 要求**: >= 22.14.0（`node:sqlite` 需要 Node 22+）
 - **OpenClaw 最低要求**: >= 2026.4.23
+
+## OpenClaw 2026.6.x 兼容性变更
+
+2026.6.x 引入了基于 `contracts.tools` 的插件工具契约：
+
+1. **插件 manifest 必须声明 `contracts.tools`**（已在 `src/plugin/openclaw.plugin.json` 中补齐全部 `zk_*` 工具名）。未声明时，运行时 `api.registerTool(...)` 会被拒绝，agent 看不到任何 zk 工具。
+2. **工具 allowlist** 仍通过 `tools.alsoAllow` 配置，但推荐使用插件 ID 或 `group:plugins`：
+   - `2026.4.x`：`tools.alsoAllow: ["zettelkasten"]`
+   - `2026.6.x+`：`tools.alsoAllow: ["group:plugins"]` 或 `["zettelkasten"]`（两者在 manifest 声明 contracts 后都会被正确展开为具体工具）
+3. **systemPromptOverride 已移除**：2026.6.x+ 不再接受 `agents.defaults.systemPromptOverride`，Skill 通过 `skills.load.extraDirs` 正常加载即可。
+4. **修改 manifest 后需要刷新插件索引**：
+   ```bash
+   openclaw plugins registry --refresh
+   openclaw gateway restart
+   ```
 
 ## OpenClaw 2026.4.24 配置字段备忘
 
@@ -81,6 +96,8 @@ Skill 目录注册（两种路径都兼容）：
 6. **FTS 中文搜索修复** — `note-repository.ts` 实现 FTS + LIKE 双引擎合并搜索
 7. **插件工具暴露修复** — 配置 `tools.alsoAllow: ["zettelkasten"]` 使 agent 可见 MCP 工具
 8. **systemPromptOverride 修复** — 移除 `file:` 前缀，直接内联 PROMPT.md 内容
+9. **OpenClaw 2026.6.x 兼容** — 在 `openclaw.plugin.json` 中声明 `contracts.tools`，并刷新插件索引
+10. **Hermes MCP Bridge** — 新增 `src/mcp/http-bridge.ts`，将 Zettelkasten MCP 工具以 Streamable HTTP 暴露给 Hermes Agent
 
 ## 常用命令
 
@@ -92,16 +109,25 @@ bash scripts/deploy.sh
 openclaw zk init
 openclaw zk doctor
 
-# Skill 激活（注意：systemPromptOverride 不支持 file: 前缀）
+# Skill 激活
 openclaw config set skills.load.extraDirs '["~/.openclaw/skills"]'
 openclaw config set agents.defaults.skills '["zettelkasten-brain"]'
 
 # 关键：必须配置 tools.alsoAllow，否则 agent 看不到 zk 工具
+# 2026.4.x
 openclaw config set tools.alsoAllow '["zettelkasten"]'
+# 2026.6.x+（推荐）
+openclaw config set tools.alsoAllow '["group:plugins"]'
 
-# systemPromptOverride 需直接填入文本（可用脚本读取文件）
-# PROMPT=$(cat ~/.openclaw/skills/zettelkasten-brain/PROMPT.md)
-# openclaw config set agents.defaults.systemPromptOverride "$PROMPT"
+# 修改 plugin manifest 后刷新索引
+openclaw plugins registry --refresh
+openclaw gateway restart
+
+# Hermes Agent 接入（测试环境）
+npm run build:bridge
+bash environments/compat-testing/scripts/deploy-zk-to-container.sh openclaw-latest
+bash environments/compat-testing/scripts/setup-hermes-mcp.sh hermes-latest openclaw-latest
+docker exec hermes-latest hermes mcp test zettelkasten
 ```
 
 ## Zettelkasten 操作铁律（每次涉及 zk 时必须遵守）
@@ -112,7 +138,7 @@ openclaw config set tools.alsoAllow '["zettelkasten"]'
 > - `zk_search_notes` — 检索
 > - `zk_create_note` — 创建
 > - `zk_update_note` — 更新
-> - `zk_create_link` — 关联
+> - `zk_create_link` / `zk_create_note` / `zk_update_note` — 关联与写入
 > - `zk_get_note` — 读取
 >
 > **违反后果**: 直接操作 SQLite 会导致 FTS 索引不一致、链接表损坏、笔记状态丢失。任何绕过 Skill 规则的操作都是不可接受的。
@@ -120,5 +146,5 @@ openclaw config set tools.alsoAllow '["zettelkasten"]'
 ## 注意事项
 
 - **不要用** `zettelkasten-deployment/` 子集，统一用本项目 `src/` 完整版
-- **测试环境** — 当前环境 Node v22.22.2，862 个测试（861 通过，1 个性能测试待修复）
+- **测试环境** — 当前环境 Node v22.22.2，1724 个测试全部通过
 - **Git** — 主仓库为当前目录 `/home/myxia/.openclaw/project/zettelkasten/`，最近提交 `备份: v1.0.0-beta.7 发布完成`

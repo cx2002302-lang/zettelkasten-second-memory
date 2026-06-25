@@ -20,6 +20,12 @@ fi
 COMPOSE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$COMPOSE_DIR"
 
+# 确保所有测试容器在同一个自定义网络，便于按容器名互相访问
+NETWORK_NAME="compat-testing"
+if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+  docker network create "$NETWORK_NAME"
+fi
+
 # 加载 .env
 if [ -f .env ]; then
   # shellcheck disable=SC2046
@@ -71,6 +77,7 @@ start_openclaw() {
   local version="$1"
   local name="$2"
   local port="$3"
+  local mcp_port="$4"
   local data_vol="compat-testing_oc-${version//./-}-data"
 
   docker rm -f "openclaw-${name}" 2>/dev/null || true
@@ -80,8 +87,10 @@ start_openclaw() {
   docker run -d \
     --name "openclaw-${name}" \
     --user node \
+    --network "$NETWORK_NAME" \
     --restart unless-stopped \
     -p "${port}:18789" \
+    -p "${mcp_port}:9090" \
     -e OPENAI_API_KEY="${OPENAI_API_KEY:-}" \
     -e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}" \
     -e MINIMAX_API_KEY="${MINIMAX_API_KEY:-}" \
@@ -96,6 +105,7 @@ start_openclaw() {
 start_openclaw_latest() {
   local name="openclaw-latest"
   local port="18892"
+  local mcp_port="19092"
   local data_vol="compat-testing_oc-latest-data"
 
   docker rm -f "$name" 2>/dev/null || true
@@ -107,8 +117,10 @@ start_openclaw_latest() {
   docker run -d \
     --name "$name" \
     --user node \
+    --network "$NETWORK_NAME" \
     --restart unless-stopped \
     -p "${port}:18789" \
+    -p "${mcp_port}:9090" \
     -e OPENAI_API_KEY="${OPENAI_API_KEY:-}" \
     -e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}" \
     -e MINIMAX_API_KEY="${MINIMAX_API_KEY:-}" \
@@ -123,10 +135,10 @@ start_openclaw_latest() {
 
 case "$CONTAINER" in
   openclaw-2026-4-23)
-    start_openclaw "2026.4.23" "2026-4-23" "18890"
+    start_openclaw "2026.4.23" "2026-4-23" "18890" "19090"
     ;;
   openclaw-2026-4-24)
-    start_openclaw "2026.4.24" "2026-4-24" "18891"
+    start_openclaw "2026.4.24" "2026-4-24" "18891" "19091"
     ;;
   openclaw-latest)
     start_openclaw_latest
@@ -137,6 +149,7 @@ case "$CONTAINER" in
     # 测试环境用 sleep infinity 保持容器存活，便于后续 exec 探测版本。
     docker run -d \
       --name hermes-latest \
+      --network "$NETWORK_NAME" \
       --restart unless-stopped \
       -p "8652:8642" \
       -p "9129:9119" \

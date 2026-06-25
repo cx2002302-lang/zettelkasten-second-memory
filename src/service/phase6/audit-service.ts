@@ -152,13 +152,18 @@ export class KnowledgeAuditService {
       avgContentLength: avgLength,
     });
 
+    // 一致性兜底：如果总链接数为 0，所有基于链接的指标必须归零
+    const consistentHubNotes = totalLinks === 0 ? [] : hubNotes;
+    const consistentOrphanCount = totalLinks === 0 ? totalNotes : orphanCount;
+    const consistentConnectionRate = totalLinks === 0 ? 0 : connectionRate;
+
     const report: KnowledgeHealthReport = {
       generatedAt: new Date().toISOString(),
       totalNotes,
       totalLinks,
-      connectionRate: Math.round(connectionRate * 1000) / 10,
-      orphanCount,
-      hubNotes: hubNotes.map((h) => ({
+      connectionRate: Math.round(consistentConnectionRate * 1000) / 10,
+      orphanCount: consistentOrphanCount,
+      hubNotes: consistentHubNotes.map((h) => ({
         id: h.id,
         title: h.title,
         linkCount: h.link_count,

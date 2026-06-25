@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { promises as fs } from "node:fs";
 import type {
   ZettelNote,
   CreateNoteParams,
@@ -15,9 +16,13 @@ import {
   checkAtomicity,
 } from "../core/utils.js";
 import { DEFAULT_NOTE_TYPE, DEFAULT_NOTE_STATUS, DEFAULT_NOTE_FOLDER, DEFAULT_CONFIDENCE, DEFAULT_TRUNCATE_LENGTH, DEFAULT_PAGE_LIMIT, FTS_SNIPPET_LENGTH } from "../core/constants.js";
+import type { TemplateManager } from "../storage/template-manager.js";
 
 export class NoteRepository {
-  constructor(private db: DatabaseSync) {}
+  constructor(
+    private db: DatabaseSync,
+    private templateManager?: TemplateManager,
+  ) {}
   
   /**
    * 创建新卡片
@@ -115,6 +120,9 @@ export class NoteRepository {
     
     // 更新全文搜索索引
     this.updateFtsIndex(note);
+    
+    // 同步写入 Markdown 文件
+    await this.writeNoteFile(note);
     
     return note;
   }
@@ -216,6 +224,7 @@ export class NoteRepository {
     const updatedNote = this.get(id);
     if (updatedNote) {
       this.updateFtsIndex(updatedNote);
+      await this.writeNoteFile(updatedNote);
     }
     
     return updatedNote;
@@ -224,7 +233,17 @@ export class NoteRepository {
   /**
    * 删除卡片
    */
-  delete(id: string): boolean {
+  async delete(id: string): Promise<boolean> {
+    // 先获取文件路径并删除 Markdown 文件
+    const note = this.get(id);
+    if (note) {
+      try {
+        await fs.unlink(note.filePath);
+      } catch {
+        // 文件可能不存在，忽略错误
+      }
+    }
+
     // 删除相关记录 (外键级联删除会处理大部分)
     const result = this.db.prepare(`DELETE FROM zettel_notes WHERE id = ?`).run(id);
     
@@ -629,6 +648,30 @@ export class NoteRepository {
       );
     } catch {
       // FTS 表可能不存在，忽略错误
+    }
+  }
+
+  /**
+   * 将笔记持久化为 Markdown 文件
+   */
+  private async writeNoteFile(note: ZettelNote): Promise<void> {
+    if (!this.templateManager) return;
+
+    try {
+      await this.templateManager.createNoteFile(note.filePath, note.type, {
+        id: note.id,
+        title: note.title,
+        content: note.content,
+        summary: note.summary,
+        tags: note.tags,
+        created_at: note.createdAt,
+        updated_at: note.updatedAt,
+      });
+    } catch (err) {
+      console.warn(
+        `[NoteRepository] Failed to write note file ${note.filePath}:`,
+        err instanceof Error ? err.message : String(err)
+      );
     }
   }
 }

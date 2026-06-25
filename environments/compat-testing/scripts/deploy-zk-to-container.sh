@@ -21,7 +21,14 @@ echo "==> Deploying Zettelkasten plugin to $CONTAINER..."
 docker exec "$CONTAINER" bash /opt/zettelkasten-source/scripts/deploy.sh
 
 echo "==> Ensuring tools.alsoAllow contains zettelkasten..."
-docker exec "$CONTAINER" openclaw config set tools.alsoAllow '["zettelkasten"]' 2>/dev/null || true
+OC_VERSION=$(docker exec "$CONTAINER" openclaw --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unknown")
+if echo "$OC_VERSION" | grep -qE '^2026\.(6|7|8|9|[0-9]{2})\.'; then
+  # 2026.6.x 工具策略按工具名/组处理，plugin ID 不能直接出现在 allowlist 中
+  # group:plugins 包含所有已加载插件的工具（当前环境只有 zettelkasten）
+  docker exec "$CONTAINER" openclaw config set tools.alsoAllow '["group:plugins"]' 2>/dev/null || true
+else
+  docker exec "$CONTAINER" openclaw config set tools.alsoAllow '["zettelkasten"]' 2>/dev/null || true
+fi
 
 echo "==> Ensuring agents.defaults.skills contains zettelkasten-brain..."
 docker exec "$CONTAINER" openclaw config set agents.defaults.skills '["zettelkasten-brain"]' 2>/dev/null || true
@@ -88,6 +95,12 @@ echo "==> Setting up zettelkasten-brain skill prompt (best-effort)..."
 # OpenClaw >= 2026.6.x 已移除 agents.defaults.systemPromptOverride，此步骤可能失败
 docker exec "$CONTAINER" bash /opt/zettelkasten-source/scripts/setup-skill-prompt.sh 2>/dev/null || echo "   (skill prompt not applicable for this OpenClaw version)"
 
+# setup-skill-prompt.sh 会把 alsoAllow 重置为 zettelkasten，2026.6.x 需要改回 group:plugins
+if echo "$OC_VERSION" | grep -qE '^2026\.(6|7|8|9|[0-9]{2})\.'; then
+  echo "==> Re-applying 2026.6.x tool policy (group:plugins)..."
+  docker exec "$CONTAINER" openclaw config set tools.alsoAllow '["group:plugins"]' 2>/dev/null || true
+fi
+
 echo "==> Restarting container to apply config changes..."
 docker restart "$CONTAINER"
 sleep 10
@@ -97,5 +110,27 @@ docker exec "$CONTAINER" openclaw zk init
 
 echo "==> Verifying health..."
 docker exec "$CONTAINER" openclaw zk doctor
+
+echo "==> Building Zettelkasten MCP bridge on host..."
+cd "${COMPOSE_DIR}/../.." && npm run build:bridge && cd -
+
+echo "==> Refreshing OpenClaw plugin registry to pick up manifest changes..."
+docker exec "$CONTAINER" openclaw plugins registry --refresh 2>/dev/null || true
+
+echo "==> Starting Zettelkasten MCP bridge for Hermes integration..."
+docker exec -d \
+  -e ZETTELKASTEN_DB_PATH=/home/node/.openclaw/zettelkasten/zettelkasten.db \
+  -e ZETTELKASTEN_NOTES_DIR=/home/node/.openclaw/zettelkasten/notes \
+  -e ZETTELKASTEN_MCP_PORT=9090 \
+  "$CONTAINER" \
+  node /opt/zettelkasten-source/dist/mcp/http-bridge.js
+sleep 2
+
+# 简单探测 bridge 是否监听
+if docker exec "$CONTAINER" sh -c 'nc -z localhost 9090' >/dev/null 2>&1 || docker exec "$CONTAINER" sh -c 'timeout 2 bash -c "</dev/tcp/localhost/9090"' >/dev/null 2>&1; then
+  echo "   MCP bridge is listening on port 9090"
+else
+  echo "   Warning: MCP bridge may not be ready yet (check /home/node/.openclaw/zk-mcp-bridge.log)"
+fi
 
 echo "==> Done: $CONTAINER"

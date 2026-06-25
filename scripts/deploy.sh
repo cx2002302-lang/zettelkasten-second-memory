@@ -116,16 +116,31 @@ if command -v openclaw >/dev/null 2>&1; then
     # BUG-001 修复: 清理 alsoAllow 中的无效条目（Skill ID 不应放入 alsoAllow）
     log_info "Checking tools.alsoAllow..."
     python3 -c "
-import json, os, sys
+import json, os, sys, subprocess
 cfg_path = os.path.expanduser('~/.openclaw/openclaw.json')
+try:
+    version = subprocess.check_output(['openclaw','--version'], text=True, stderr=subprocess.DEVNULL)
+except Exception:
+    version = ''
+# OpenClaw >= 2026.6.x 支持 group:plugins 作为插件工具总控，低版本使用 zettelkasten
+supports_group_plugins = False
+import re
+m = re.search(r'(\d{4})\.(\d+)\.(\d+)', version)
+if m:
+    y, mon, d = map(int, m.groups())
+    if y > 2026 or (y == 2026 and mon >= 6):
+        supports_group_plugins = True
 try:
     with open(cfg_path, 'r') as f:
         cfg = json.load(f)
     if 'tools' in cfg and 'alsoAllow' in cfg.get('tools', {}):
         original = cfg['tools']['alsoAllow']
-        # 只保留 zk_ 前缀的工具名以及插件总控名 zettelkasten，移除 Skill ID（如 zettelkasten-brain, open-upsp 等）
-        cleaned = [x for x in original if x.startswith('zk_') or x == 'zettelkasten']
-        removed = [x for x in original if not (x.startswith('zk_') or x == 'zettelkasten')]
+        # 保留 zk_ 前缀工具名、插件 ID zettelkasten 以及 2026.6.x 的 group:plugins
+        allowed = {'zettelkasten'}
+        if supports_group_plugins:
+            allowed.add('group:plugins')
+        cleaned = [x for x in original if x.startswith('zk_') or x in allowed]
+        removed = [x for x in original if not (x.startswith('zk_') or x in allowed)]
         if removed:
             cfg['tools']['alsoAllow'] = cleaned
             with open(cfg_path, 'w') as f:

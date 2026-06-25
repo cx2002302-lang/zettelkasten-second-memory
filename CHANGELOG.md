@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.0.0-beta.8 — OpenClaw 2026.6.x + Hermes MCP Compatibility
+
+**Release Date**: 2026-06-25
+
+### 🔧 Compatibility
+
+- **OpenClaw 2026.6.x support** — Declared `contracts.tools` in plugin manifest for new tool policy
+- **Tool policy abstraction** — Added `scripts/lib/compat.sh` to centralize version-specific OpenClaw configuration
+- **`systemPromptOverride` deprecation handling** — `setup-skill-prompt.sh` now skips on OpenClaw >= 2026.6.x
+- **Hermes MCP bridge** — New `src/mcp/http-bridge.ts` exposes Zettelkasten tools via Streamable HTTP for Hermes Agent
+
+### 🧪 Testing
+
+- **1724 tests passing**, 72 test files, 0 failures
+- Replaced hardcoded `/test/...` paths with temp directories via `src/testing/test-fs.ts`
+- Added local compatibility matrix runner: `scripts/run-compat-matrix.sh`
+- Added Hermes mock-LLM E2E test and MiniMax real-LLM E2E test
+
+### 🛠️ Fixes
+
+- Audit consistency edge case when `totalLinks === 0`
+- Glow ranking empty-cache fallback
+- DB ↔ Markdown file system sync
+- Hermes config path (`/opt/data/config.yaml`)
+
+---
+
 ## v1.0.0-beta.7 — Security Hardening + Code Quality + Test Expansion
 
 **Release Date**: 2026-05-22

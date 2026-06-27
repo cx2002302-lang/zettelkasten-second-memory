@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
-import type { LinkType } from "../../core/types.js";
+import type { LinkType, QueryNotesParams } from "../../core/types.js";
 import { ensureZettelkastenSchema, getDatabaseStats } from "../../storage/db-schema.js";
 import type { ZettelkastenPluginConfig } from "../config.js";
 import type { ZettelkastenServices } from "../lifecycle.js";
@@ -94,13 +94,15 @@ export function registerCLICommands(
         .option("--tags <tags>", "Comma-separated tags")
         .option("--confidence <n>", "Confidence score 0-1", safeParseFloat)
         .option("--source <source>", "Source type", "manual")
+        .option("--folder <folder>", "Override folder (inbox/references/zettels/archive)")
+        .option("--status <status>", "Lifecycle status (FLEETING/LITERATURE/PERMANENT)")
         .action(async (opts: any) => {
           const tags = opts.tags
             ? (opts.tags as string).split(",").map((t: string) => t.trim()).filter(Boolean)
             : undefined;
           try {
             const note = await noteService.createNote(
-              { title: opts.title, content: opts.content, tags },
+              { title: opts.title, content: opts.content, tags, folder: opts.folder, status: opts.status },
               { confidence: opts.confidence, source: opts.source },
             );
             api.logger.info(`[zettelkasten] Created note: ${note.id} -> ${note.folder}`);
@@ -172,8 +174,28 @@ export function registerCLICommands(
         .description("Full-text search across notes")
         .argument("<query>", "Search query")
         .option("--limit <n>", "Max results", safeParseInt, 20)
+        .option("--folder <folder>", "Filter by folder (inbox/references/zettels/archive)")
+        .option("--tag <tag>", "Filter by tag (repeatable)", (v: string, prev: string[]) => prev.concat([v]), [])
+        .option("--min-confidence <n>", "Minimum confidence", safeParseFloat)
+        .option("--max-confidence <n>", "Maximum confidence", safeParseFloat)
+        .option("--created-after <date>", "Created after (ISO 8601)")
+        .option("--created-before <date>", "Created before (ISO 8601)")
+        .option("--updated-after <date>", "Updated after (ISO 8601)")
+        .option("--updated-before <date>", "Updated before (ISO 8601)")
         .action(async (query: string, opts: any) => {
-          const results = await noteService.searchNotes(query, opts.limit);
+          const filters: Partial<QueryNotesParams> = {};
+          if (opts.folder) filters.folder = opts.folder;
+          if (opts.tag && opts.tag.length > 0) filters.tags = opts.tag;
+          if (opts.minConfidence !== undefined) filters.minConfidence = opts.minConfidence;
+          if (opts.maxConfidence !== undefined) filters.maxConfidence = opts.maxConfidence;
+          if (opts.createdAfter) filters.createdAfter = opts.createdAfter;
+          if (opts.createdBefore) filters.createdBefore = opts.createdBefore;
+          if (opts.updatedAfter) filters.updatedAfter = opts.updatedAfter;
+          if (opts.updatedBefore) filters.updatedBefore = opts.updatedBefore;
+
+          const results = await noteService.searchNotes(query, opts.limit, {
+            filters: Object.keys(filters).length > 0 ? filters : undefined,
+          });
           if (results.length === 0) {
             api.logger.info(`[zettelkasten] No results for: "${query}"`);
           } else {

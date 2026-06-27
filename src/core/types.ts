@@ -135,6 +135,8 @@ export interface QueryNotesParams {
   type?: NoteType;
   /** 按状态过滤 */
   status?: NoteStatus;
+  /** 按文件夹过滤 */
+  folder?: NoteFolder;
   /** 按标签过滤 */
   tags?: string[];
   /** 按链接到特定卡片过滤 */
@@ -153,6 +155,10 @@ export interface QueryNotesParams {
   createdAfter?: string;
   /** 创建时间范围 - 结束 */
   createdBefore?: string;
+  /** 更新时间范围 - 开始 */
+  updatedAfter?: string;
+  /** 更新时间范围 - 结束 */
+  updatedBefore?: string;
   /** 排序字段 */
   sortBy?: "createdAt" | "updatedAt" | "title" | "confidence";
   /** 排序方向 */

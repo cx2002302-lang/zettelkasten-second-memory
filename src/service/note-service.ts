@@ -17,6 +17,7 @@ import type {
   ZettelNote,
   CreateNoteParams,
   UpdateNoteParams,
+  QueryNotesParams,
   NoteStatus,
   NoteFolder,
   SourceType,
@@ -90,10 +91,10 @@ export class NoteService {
       throw new Error("Confidence must be between 0 and 1");
     }
 
-    // 1. 确定目标文件夹（置信度路由）
-    const folder = this.routeByConfidence(confidence);
+    // 1. 确定目标文件夹（置信度路由，除非用户显式指定了 folder）
+    const folder = params.folder ?? this.routeByConfidence(confidence);
 
-    // 2. 构建参数（覆盖 folder, confidence, source）
+    // 2. 构建参数（覆盖 confidence, source）
     const createParams: CreateNoteParams = {
       ...params,
       folder,
@@ -210,8 +211,8 @@ export class NoteService {
     return await this.updateNote(id, { folder: "zettels", preserveUpdatedAt: true });
   }
 
-  async searchNotes(query: string, limit: number = DEFAULT_PAGE_LIMIT, options?: { includeArchived?: boolean }): Promise<SearchResult[]> {
-    const results = await this.noteRepo.search(query, limit);
+  async searchNotes(query: string, limit: number = DEFAULT_PAGE_LIMIT, options?: { includeArchived?: boolean; filters?: Partial<QueryNotesParams> }): Promise<SearchResult[]> {
+    const results = await this.noteRepo.search(query, limit, options?.filters);
     if (!options?.includeArchived) {
       return results.filter(r => r.note.folder !== 'archive');
     }

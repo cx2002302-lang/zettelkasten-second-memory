@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.0-beta.9 — systemPromptOverride Removed, SKILL.md Native Injection
+
+**Release Date**: 2026-06-28
+
+### Fixed
+
+- **ZK Brain systemPromptOverride replaced all other skills** — Removed `systemPromptOverride` pattern; SKILL.md now contains PROMPT.md content (agent behavior instructions). INSTALL.md simplified (no systemPromptOverride steps). setup-skill-prompt.sh (`zettelkasten-release`) skips on OpenClaw >= 2026.6.x.
+
 ## v1.0.0-beta.8.1 — OpenClaw 2026.6.x + Hermes MCP Compatibility
 
 **Release Date**: 2026-06-25

@@ -1,7 +1,7 @@
 # Zettelkasten Brain Skill — 安装指南
 
-**版本**: 1.0.0  
-**适用于**: OpenClaw >= 2026.4.23  
+**版本**: 1.0.0
+**适用于**: OpenClaw >= 2026.4.23
 **依赖**: Zettelkasten 插件已安装并启用
 
 ---
@@ -31,24 +31,7 @@ cp -r zettelkasten-skill ~/.openclaw/skills/zettelkasten-brain
 
 ### 第2步：激活 Skill
 
-**如果选择了 A（Workspace skills）**：
-
 ```bash
-# 只需设置系统提示词和注册 skill
-openclaw config set agents.defaults.systemPromptOverride "file:~/.openclaw/workspace/skills/zettelkasten-brain/PROMPT.md"
-openclaw config set agents.defaults.skills '["zettelkasten-brain"]'
-```
-
-**如果选择了 B（Global skills）**：
-
-```bash
-# 1. 注册 skill 目录
-openclaw config set skills.load.extraDirs '["~/.openclaw/skills"]'
-
-# 2. 设置系统提示词
-openclaw config set agents.defaults.systemPromptOverride "file:~/.openclaw/skills/zettelkasten-brain/PROMPT.md"
-
-# 3. 注册 skill
 openclaw config set agents.defaults.skills '["zettelkasten-brain"]'
 ```
 
@@ -105,7 +88,6 @@ chmod +x ~/.openclaw/skills/zettelkasten-brain/evolve.sh
 ```bash
 # 1. 移除 skill 配置
 openclaw config set agents.defaults.skills '[]'
-openclaw config set agents.defaults.systemPromptOverride ""
 
 # 2. 删除文件
 rm -rf ~/.openclaw/skills/zettelkasten-brain
@@ -120,10 +102,6 @@ openclaw gateway restart
 ---
 
 ## 故障排除
-
-### "Config validation failed: agents.defaults: Unrecognized key: systemPrompt"
-**原因**: OpenClaw 2026.4.24 的配置字段是 `systemPromptOverride`，不是 `systemPrompt`。  
-**解决**: 使用 `agents.defaults.systemPromptOverride`。
 
 ### "skill not found"
 检查路径是否正确：

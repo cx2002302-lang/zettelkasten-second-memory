@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.0.0-beta.10 — Restored systemPromptOverride, Cross-Version Tool Instructions
+
+**Release Date**: 2026-06-28
+
+### Fixed
+
+- **Restored systemPromptOverride design** for 2026.4.x: PROMPT.md is again the primary agent instructions.
+- **Appended b2s/upsp/svm** usage to both PROMPT.md (override path) and SKILL.md (2026.6.x injection path).
+- Agent behavior now consistent regardless of OpenClaw version (2026.4.x vs 2026.6.x+).
+
 ## v1.0.0-beta.9 — systemPromptOverride Removed, SKILL.md Native Injection
 
 **Release Date**: 2026-06-28

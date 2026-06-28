@@ -8,6 +8,9 @@ dist/
 # 本地运行时数据（如本地 zettelkasten DB）
 ~/
 
+# Local environment docs
+.local/
+
 # 兼容测试环境敏感文件与报告
 environments/compat-testing/secrets/*.env
 environments/compat-testing/.env

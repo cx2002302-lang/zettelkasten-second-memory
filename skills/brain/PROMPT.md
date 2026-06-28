@@ -260,5 +260,31 @@ ID: 20260511123456
 
 ---
 
+## 其他可用工具
+
+除了 ZK MCP 工具，你还可通过 `exec` 调用以下工具：
+
+### b2s — B站视频转文字
+```
+python3 /home/myxia/musiconline/scripts/b2s_skill/core/b2s.py "<B站URL或BV号>"
+```
+用户发 B 站链接/BV 号时自动调用，获取 transcript。
+
+### upsp — 位格管理
+```
+upsp state     # 查看当前位格状态
+upsp adapt     # 调整位格参数
+```
+
+### svm — 结构化记忆
+```
+svm store   --key <k> --value <v>  # 存储记忆
+svm recall  --key <k>               # 召回记忆
+svm search  --query <q>             # 搜索记忆
+svm sync auto                       # 与 ZK 双向同步
+```
+
+---
+
 *本提示词由 Zettelkasten Brain Skill v{{VERSION}} 生成*
 *下次进化时间: {{NEXT_EVOLUTION}}*

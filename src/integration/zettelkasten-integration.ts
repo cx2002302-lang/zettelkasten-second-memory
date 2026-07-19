@@ -26,6 +26,9 @@ import { DistillerService } from "../service/distiller-service.js";
 import { NoteService } from "../service/note-service.js";
 import { LinkService } from "../service/link-service.js";
 import type { LLMProvider } from "../core/types.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("ZettelkastenIntegration");
 
 // ============================================================================
 // 集成配置
@@ -142,16 +145,14 @@ export class ZettelkastenIntegration {
    */
   async initialize(): Promise<ZettelkastenIntegrationStatus> {
     if (this.status.overall === "ready") {
-      // TODO: replace with structured logger
-      // console.log("[Zettelkasten Integration] Already initialized");
+      logger.info("Already initialized");
       return this.status;
     }
 
     this.status.overall = "initializing";
     this.status.errors = [];
 
-    // TODO: replace with structured logger
-    // console.log("[Zettelkasten Integration] Initializing...");
+    logger.info("Initializing...");
 
     try {
       // 1. 初始化服务层
@@ -170,14 +171,12 @@ export class ZettelkastenIntegration {
       this.status.overall = "ready";
       this.status.initializedAt = new Date().toISOString();
 
-      // TODO: replace with structured logger
-      // console.log("[Zettelkasten Integration] Initialization complete");
+      logger.info("Initialization complete");
     } catch (error) {
       this.status.overall = "error";
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.status.errors.push(errorMessage);
-      // TODO: replace with structured logger
-      // console.error("[Zettelkasten Integration] Initialization failed:", errorMessage);
+      logger.error("Initialization failed", { error });
       throw error;
     }
 
@@ -188,8 +187,7 @@ export class ZettelkastenIntegration {
    * 初始化服务层
    */
   private async initializeServices(): Promise<void> {
-    // TODO: replace with structured logger
-    // console.log("[Zettelkasten Integration] Initializing services...");
+    logger.info("Initializing services...");
     this.status.services = "initializing";
 
     try {
@@ -206,16 +204,14 @@ export class ZettelkastenIntegration {
    * 初始化 Agent 配置
    */
   private async initializeAgentConfig(): Promise<void> {
-    // TODO: replace with structured logger
-    // console.log("[Zettelkasten Integration] Initializing agent config...");
+    logger.info("Initializing agent config...");
     this.status.agentConfig = "initializing";
 
     try {
       // AgentConfigManager 已在构造函数中初始化
       // 验证配置
       const agents = this.agentConfigManager.listAgents();
-      // TODO: replace with structured logger
-      // console.log(`[Zettelkasten Integration] Configured ${agents.length} agents`);
+      logger.info("Agents configured", { count: agents.length });
       this.status.agentConfig = "ready";
     } catch (error) {
       this.status.agentConfig = "error";
@@ -228,14 +224,12 @@ export class ZettelkastenIntegration {
    */
   private async initializeCronScheduler(): Promise<void> {
     if (!this.config.autoStartCron) {
-      // TODO: replace with structured logger
-      // console.log("[Zettelkasten Integration] Cron scheduler disabled");
+      logger.info("Cron scheduler disabled");
       this.status.cronScheduler = "ready";
       return;
     }
 
-    // TODO: replace with structured logger
-    // console.log("[Zettelkasten Integration] Initializing cron scheduler...");
+    logger.info("Initializing cron scheduler...");
     this.status.cronScheduler = "initializing";
 
     try {
@@ -256,14 +250,12 @@ export class ZettelkastenIntegration {
    */
   private async initializeSessionHook(): Promise<void> {
     if (!this.config.enableSessionHook) {
-      // TODO: replace with structured logger
-      // console.log("[Zettelkasten Integration] Session hook disabled");
+      logger.info("Session hook disabled");
       this.status.sessionHook = "ready";
       return;
     }
 
-    // TODO: replace with structured logger
-    // console.log("[Zettelkasten Integration] Initializing session hook...");
+    logger.info("Initializing session hook...");
     this.status.sessionHook = "initializing";
 
     try {
@@ -287,8 +279,7 @@ export class ZettelkastenIntegration {
    * 停止所有组件
    */
   async shutdown(): Promise<void> {
-    // TODO: replace with structured logger
-    // console.log("[Zettelkasten Integration] Shutting down...");
+    logger.info("Shutting down...");
 
     // 停止 Cron 调度器
     if (this.cronScheduler) {
@@ -301,8 +292,7 @@ export class ZettelkastenIntegration {
     }
 
     this.status.overall = "uninitialized";
-    // TODO: replace with structured logger
-    // console.log("[Zettelkasten Integration] Shutdown complete");
+    logger.info("Shutdown complete");
   }
 
   // ============================================================================

@@ -12,7 +12,7 @@
  * 后台知识管理子脑（读写）：
  * 5. zk_create_note       - 创建笔记（含置信度路由）
  * 6. zk_update_note       - 更新笔记
- * 7. zk_run_ceqrc_workflow - CEQRC 工作流
+ * 7. zk_run_ceqrc         - CEQRC 工作流
  * 
  * 权限通过 OpenClaw Agent 配置控制。
  */
@@ -30,11 +30,15 @@ import type {
   ZettelNote,
   CreateNoteParams,
   UpdateNoteParams,
+  QueryNotesParams,
   NoteFolder,
   SourceType,
   LLMProvider,
 } from "../core/types.js";
 import { DEFAULT_PAGE_LIMIT, DEFAULT_PAGE_SIZE } from "../core/constants.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("ZettelkastenMCPServer");
 
 export interface ZettelkastenMCPConfig {
   /** 数据库文件路径 */
@@ -89,13 +93,12 @@ export class ZettelkastenMCPServer {
   /**
    * 搜索笔记（全文搜索）
    */
-  async searchNotes(query: string, limit: number = DEFAULT_PAGE_LIMIT) {
+  async searchNotes(query: string, limit: number = DEFAULT_PAGE_LIMIT, filters?: Partial<QueryNotesParams>) {
     if (!this.config.enableReadOnlyTools) {
       throw new Error("Read-only tools are disabled");
     }
     
-    // 使用 NoteService 的搜索功能
-    return await this.noteService.searchNotes(query, limit);
+    return await this.noteService.searchNotes(query, limit, { filters });
   }
 
   /**
@@ -366,10 +369,29 @@ export class ZettelkastenMCPServer {
             properties: {
               query: { type: "string", description: "搜索关键词" },
               limit: { type: "number", description: "返回数量", default: DEFAULT_PAGE_LIMIT },
+              tags: { type: "array", items: { type: "string" }, description: "标签过滤（交集）" },
+              folder: { type: "string", enum: ["inbox", "references", "zettels", "archive"], description: "文件夹过滤" },
+              minConfidence: { type: "number", description: "最小置信度", minimum: 0, maximum: 1 },
+              maxConfidence: { type: "number", description: "最大置信度", minimum: 0, maximum: 1 },
+              createdAfter: { type: "string", description: "创建时间 >= (ISO 8601)" },
+              createdBefore: { type: "string", description: "创建时间 <= (ISO 8601)" },
+              updatedAfter: { type: "string", description: "更新时间 >= (ISO 8601)" },
+              updatedBefore: { type: "string", description: "更新时间 <= (ISO 8601)" },
             },
             required: ["query"],
           },
-          handler: async (args: any) => await this.searchNotes(args.query, args.limit),
+          handler: async (args: any) => {
+            const filters: Partial<QueryNotesParams> = {};
+            if (args.tags) filters.tags = args.tags;
+            if (args.folder) filters.folder = args.folder as QueryNotesParams["folder"];
+            if (args.minConfidence !== undefined) filters.minConfidence = args.minConfidence;
+            if (args.maxConfidence !== undefined) filters.maxConfidence = args.maxConfidence;
+            if (args.createdAfter) filters.createdAfter = args.createdAfter;
+            if (args.createdBefore) filters.createdBefore = args.createdBefore;
+            if (args.updatedAfter) filters.updatedAfter = args.updatedAfter;
+            if (args.updatedBefore) filters.updatedBefore = args.updatedBefore;
+            return await this.searchNotes(args.query, args.limit, Object.keys(filters).length > 0 ? filters : undefined);
+          },
         },
         {
           name: "zk_get_note",
@@ -515,13 +537,19 @@ export class ZettelkastenMCPServer {
               type: { type: "string", enum: ["atomic", "structure", "source"], default: "atomic" },
               confidence: { type: "number", description: "置信度评分 0-1", default: 0.5 },
               source: { type: "string", enum: ["manual", "distilled", "ceqrc"], default: "manual" },
+              folder: { type: "string", enum: ["inbox", "references", "zettels", "archive"], description: "覆盖置信度路由" },
+              status: { type: "string", enum: ["FLEETING", "LITERATURE", "PERMANENT"], description: "生命周期状态" },
             },
             required: ["title", "content"],
           },
-          handler: async (args: any) => await this.createNote(args, {
-            confidence: args.confidence,
-            source: args.source,
-          }),
+          handler: async (args: any) => {
+            const note = await this.createNote(args, {
+              confidence: args.confidence,
+              source: args.source,
+            });
+            const hasHotTag = note.tags.includes("svm:hot");
+            return hasHotTag ? { ...note, hot: true } : note;
+          },
         },
         {
           name: "zk_update_note",
@@ -533,11 +561,18 @@ export class ZettelkastenMCPServer {
               title: { type: "string", description: "新标题" },
               content: { type: "string", description: "新内容" },
               folder: { type: "string", enum: ["inbox", "references", "zettels", "archive"] },
+              status: { type: "string", enum: ["FLEETING", "LITERATURE", "PERMANENT"], description: "生命周期状态" },
               reviewed: { type: "boolean", description: "是否已审核" },
             },
             required: ["id"],
           },
-          handler: async (args: any) => await this.updateNote(args.id, args),
+          handler: async (args: any) => {
+            const updated = await this.updateNote(args.id, args);
+            if (updated && updated.tags.includes("svm:hot")) {
+              return { ...updated, hot: true };
+            }
+            return updated;
+          },
         },
         {
           name: "zk_archive_note",
@@ -564,7 +599,7 @@ export class ZettelkastenMCPServer {
           handler: async (args: any) => await this.unarchiveNote(args.noteId),
         },
         {
-          name: "zk_run_ceqrc_workflow",
+          name: "zk_run_ceqrc",
           description: "运行 CEQRC 深度内化工作流",
           inputSchema: {
             type: "object",
@@ -591,17 +626,6 @@ export class ZettelkastenMCPServer {
             required: ["date"],
           },
           handler: async (args: any) => await this.distillMemoryLog(args.date),
-        },
-        {
-          name: "zk_get_inbox_queue",
-          description: "获取 Inbox 待审核队列",
-          inputSchema: {
-            type: "object",
-            properties: {
-              limit: { type: "number", description: "返回数量", default: DEFAULT_PAGE_SIZE },
-            },
-          },
-          handler: async (args: any) => await this.getInboxQueue(args.limit),
         },
         {
           name: "zk_review_note",
@@ -634,8 +658,7 @@ export class ZettelkastenMCPServer {
    * 启动 MCP 服务器（集成到 OpenClaw）
    */
   start(): void {
-    // TODO: replace with structured logger
-    // console.log("Zettelkasten MCP server started");
+    logger.info("Zettelkasten MCP server started");
     // TODO: 注册到 OpenClaw MCP 管理器
   }
 
@@ -643,7 +666,6 @@ export class ZettelkastenMCPServer {
    * 停止 MCP 服务器
    */
   stop(): void {
-    // TODO: replace with structured logger
-    // console.log("Zettelkasten MCP server stopped");
+    logger.info("Zettelkasten MCP server stopped");
   }
 }

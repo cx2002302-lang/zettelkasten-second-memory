@@ -17,6 +17,7 @@ import type { LinkStats } from "./repository/link-repository.js";
 import { TagRepository } from "./repository/tag-repository.js";
 import type { TagStats } from "./repository/tag-repository.js";
 import { ensureZettelkastenSchema, getDatabaseStats } from "./storage/db-schema.js";
+import { createLogger } from "./core/logger.js";
 import type {
   CreateNoteParams,
   UpdateNoteParams,
@@ -26,10 +27,13 @@ import type {
   LinkType,
 } from "./core/types.js";
 
+const logger = createLogger("ZettelkastenClient");
+
 // 核心类型和常量
 export * from "./core/types.js";
 export * from "./core/constants.js";
 export * from "./core/utils.js";
+export * from "./core/logger.js";
 
 // 数据库 Schema
 export * from "./storage/db-schema.js";
@@ -147,14 +151,12 @@ export class ZettelkastenClient {
     });
     
     if (!schemaResult.ftsAvailable) {
-      // TODO: replace with structured logger
-      // console.warn("Full-text search not available:", schemaResult.ftsError);
+      logger.warn("Full-text search not available", { ftsError: schemaResult.ftsError });
     }
     
     await fs.mkdir(this.notesDir, { recursive: true });
     
-    // TODO: replace with structured logger
-    // console.log(`Zettelkasten initialized at ${this.notesDir}`);
+    logger.info("Zettelkasten initialized", { notesDir: this.notesDir });
   }
   
   /**

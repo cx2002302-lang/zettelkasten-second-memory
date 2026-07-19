@@ -10,6 +10,9 @@
 
 import type { DistillerService } from "../service/distiller-service.js";
 import type { DistillJob } from "../core/types.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("SessionHook");
 
 // ============================================================================
 // Session Hook 配置类型
@@ -129,19 +132,17 @@ export class SessionEndHookManager {
    */
   initialize(): void {
     if (this.isInitialized) {
-      // TODO: replace with structured logger
-      // console.warn("[Zettelkasten SessionHook] Already initialized");
+      logger.warn("Already initialized");
       return;
     }
 
     this.isInitialized = true;
     this.emitEvent("session_start", "system", { initialized: true });
 
-    // TODO: replace with structured logger
-    // console.log("[Zettelkasten SessionHook] Initialized", {
-    //   enabled: this.config.enabled,
-    //   minSessionMessages: this.config.minSessionMessages,
-    // });
+    logger.info("Initialized", {
+      enabled: this.config.enabled,
+      minSessionMessages: this.config.minSessionMessages,
+    });
   }
 
   /**
@@ -151,8 +152,7 @@ export class SessionEndHookManager {
     this.isInitialized = false;
     this.listeners.clear();
     this.pendingHooks.clear();
-    // TODO: replace with structured logger
-    // console.log("[Zettelkasten SessionHook] Destroyed");
+    logger.info("Destroyed");
   }
 
   /**
@@ -160,8 +160,7 @@ export class SessionEndHookManager {
    */
   updateConfig(config: Partial<SessionHookConfig>): void {
     this.config = { ...this.config, ...config };
-    // TODO: replace with structured logger
-    // console.log("[Zettelkasten SessionHook] Config updated", this.config);
+    logger.info("Config updated", { config: this.config });
   }
 
   // ============================================================================
@@ -201,8 +200,7 @@ export class SessionEndHookManager {
       try {
         listener(event);
       } catch (error) {
-        // TODO: replace with structured logger
-        // console.error("[Zettelkasten SessionHook] Event listener error:", error);
+        logger.error("Event listener error", { error });
       }
     }
   }
@@ -217,8 +215,7 @@ export class SessionEndHookManager {
    */
   async onSessionEnd(sessionInfo: SessionInfo): Promise<SessionHookResult> {
     if (!this.config.enabled) {
-      // TODO: replace with structured logger
-      // console.log("[Zettelkasten SessionHook] Disabled, skipping session:", sessionInfo.sessionId);
+      logger.debug("Disabled, skipping session", { sessionId: sessionInfo.sessionId });
       return {
         success: true,
         sessionId: sessionInfo.sessionId,
@@ -230,8 +227,7 @@ export class SessionEndHookManager {
 
     // 检查会话是否符合蒸馏条件
     if (!this.shouldDistillSession(sessionInfo)) {
-      // TODO: replace with structured logger
-      // console.log("[Zettelkasten SessionHook] Session does not meet criteria:", sessionInfo.sessionId);
+      logger.debug("Session does not meet criteria", { sessionId: sessionInfo.sessionId });
       return {
         success: true,
         sessionId: sessionInfo.sessionId,
@@ -391,8 +387,7 @@ export class SessionEndHookManager {
       };
     }
 
-    // TODO: replace with structured logger
-    // console.log(`[Zettelkasten SessionHook] Retrying session ${sessionInfo.sessionId}, attempt ${attempt}`);
+    logger.info("Retrying session", { sessionId: sessionInfo.sessionId, attempt });
 
     // 延迟重试
     await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));

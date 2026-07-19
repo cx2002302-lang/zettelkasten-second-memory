@@ -1,7 +1,8 @@
 /**
  * SerendipityService — 意外发现服务（Phase 6 P0）
  *
- * 非耦合设计：可独立开关，有自己的数据库表和 MCP 工具。
+ * 非耦合设计：可独立开关，有独立的 MCP 工具。
+ * 数据库表由 storage/db-schema.ts 的 ensureZettelkastenSchema 统一创建。
  */
 
 import type { DatabaseSync } from "node:sqlite";
@@ -36,30 +37,6 @@ export class SerendipityService {
       minScore: this.config.minScore,
       maxPathLength: this.config.maxPathLength,
     });
-    this.ensureSchema();
-  }
-
-  /**
-   * 创建意外发现记录表（非耦合，独立 Schema）
-   */
-  private ensureSchema(): void {
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS zettel_serendipity (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        from_note_id TEXT NOT NULL,
-        to_note_id TEXT NOT NULL,
-        score REAL NOT NULL,
-        reason TEXT,
-        common_neighbors TEXT,
-        path_length INTEGER,
-        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected', 'ignored')),
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        resolved_at TEXT,
-        UNIQUE(from_note_id, to_note_id)
-      )
-    `);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_serendipity_score ON zettel_serendipity(score DESC)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_serendipity_status ON zettel_serendipity(status)`);
   }
 
   /**

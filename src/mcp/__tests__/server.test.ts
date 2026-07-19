@@ -106,13 +106,12 @@ describe("ZettelkastenMCPServer", () => {
       });
 
       const tools = rwServer.getTools();
-      expect(tools).toHaveLength(18);
+      expect(tools).toHaveLength(17);
       expect(tools.map((t: any) => t.name)).toContain("zk_search_notes");
       expect(tools.map((t: any) => t.name)).toContain("zk_create_note");
       expect(tools.map((t: any) => t.name)).toContain("zk_update_note");
-      expect(tools.map((t: any) => t.name)).toContain("zk_run_ceqrc_workflow");
+      expect(tools.map((t: any) => t.name)).toContain("zk_run_ceqrc");
       expect(tools.map((t: any) => t.name)).toContain("zk_distill_memory");
-      expect(tools.map((t: any) => t.name)).toContain("zk_get_inbox_queue");
       expect(tools.map((t: any) => t.name)).toContain("zk_review_note");
       expect(tools.map((t: any) => t.name)).toContain("zk_glow_ranking");
       expect(tools.map((t: any) => t.name)).toContain("zk_find_zombies");

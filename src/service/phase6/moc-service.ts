@@ -46,29 +46,6 @@ export class MOCService {
       minClusterSize: this.config.minClusterSize,
       maxClusters: this.config.maxClusters,
     });
-    this.ensureSchema();
-  }
-
-  /**
-   * 创建 MOC 建议表（非耦合，独立 Schema）
-   */
-  private ensureSchema(): void {
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS zettel_moc_suggestions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        suggested_content TEXT,
-        community_id INTEGER,
-        hub_note_id TEXT,
-        note_count INTEGER,
-        density REAL,
-        note_titles TEXT,
-        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'created', 'rejected')),
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        resolved_at TEXT
-      )
-    `);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_moc_status ON zettel_moc_suggestions(status)`);
   }
 
   /**

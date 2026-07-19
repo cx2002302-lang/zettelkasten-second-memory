@@ -16,7 +16,10 @@ import {
   checkAtomicity,
 } from "../core/utils.js";
 import { DEFAULT_NOTE_TYPE, DEFAULT_NOTE_STATUS, DEFAULT_NOTE_FOLDER, DEFAULT_CONFIDENCE, DEFAULT_TRUNCATE_LENGTH, DEFAULT_PAGE_LIMIT, FTS_SNIPPET_LENGTH } from "../core/constants.js";
+import { createLogger } from "../core/logger.js";
 import type { TemplateManager } from "../storage/template-manager.js";
+
+const logger = createLogger("NoteRepository");
 
 export class NoteRepository {
   constructor(
@@ -41,7 +44,7 @@ export class NoteRepository {
       id = generateZettelId();
     }
     const type = params.type ?? DEFAULT_NOTE_TYPE;
-    const status = DEFAULT_NOTE_STATUS;
+    const status = params.status ?? DEFAULT_NOTE_STATUS;
     const folder = params.folder ?? DEFAULT_NOTE_FOLDER;
     const confidence = params.confidence ?? DEFAULT_CONFIDENCE;
     const source = params.source;
@@ -50,8 +53,7 @@ export class NoteRepository {
     // 检查原子化原则
     const atomicityCheck = checkAtomicity(params.content);
     if (!atomicityCheck.isAtomic) {
-      // TODO: replace with structured logger
-      // console.warn("Atomicity check failed:", atomicityCheck.issues);
+      logger.warn("Atomicity check failed", { issues: atomicityCheck.issues });
       // 这里可以抛出错误或仅记录警告，根据配置决定
     }
     
@@ -275,6 +277,11 @@ export class NoteRepository {
       values.push(params.status);
     }
     
+    if (params.folder) {
+      conditions.push("folder = ?");
+      values.push(params.folder);
+    }
+    
     if (params.sessionKey) {
       conditions.push("session_key = ?");
       values.push(params.sessionKey);
@@ -298,6 +305,16 @@ export class NoteRepository {
     if (params.createdBefore) {
       conditions.push("created_at <= ?");
       values.push(params.createdBefore);
+    }
+    
+    if (params.updatedAfter) {
+      conditions.push("updated_at >= ?");
+      values.push(params.updatedAfter);
+    }
+    
+    if (params.updatedBefore) {
+      conditions.push("updated_at <= ?");
+      values.push(params.updatedBefore);
     }
     
     // 链接过滤 (需要子查询)
@@ -392,17 +409,32 @@ export class NoteRepository {
   /**
    * 全文搜索（FTS + LIKE 双引擎，支持中文）
    */
-  search(query: string, limit: number = DEFAULT_PAGE_LIMIT): SearchResult[] {
-    // 判断是否包含非 ASCII 字符（如中文）
-    const hasNonAscii = /[^\x00-\x7F]/.test(query);
-
+  search(query: string, limit: number = DEFAULT_PAGE_LIMIT, filters?: QueryNotesParams): SearchResult[] {
     // 始终执行 LIKE fallback（确保中文也能搜到）
-    const fallbackResults = this.fallbackSearch(query, limit);
+    const fallbackResults = this.fallbackSearch(query, limit, filters);
 
     // 尝试 FTS 搜索
     let ftsResults: SearchResult[] = [];
     try {
       this.db.prepare("SELECT 1 FROM zettel_fts LIMIT 1").get();
+
+      let whereClause = "WHERE zettel_fts MATCH ?";
+      const filterValues: any[] = [query];
+      if (filters) {
+        if (filters.folder) { whereClause += " AND z.folder = ?"; filterValues.push(filters.folder); }
+        if (filters.minConfidence !== undefined) { whereClause += " AND z.confidence >= ?"; filterValues.push(filters.minConfidence); }
+        if (filters.maxConfidence !== undefined) { whereClause += " AND z.confidence <= ?"; filterValues.push(filters.maxConfidence); }
+        if (filters.createdAfter) { whereClause += " AND z.created_at >= ?"; filterValues.push(filters.createdAfter); }
+        if (filters.createdBefore) { whereClause += " AND z.created_at <= ?"; filterValues.push(filters.createdBefore); }
+        if (filters.updatedAfter) { whereClause += " AND z.updated_at >= ?"; filterValues.push(filters.updatedAfter); }
+        if (filters.updatedBefore) { whereClause += " AND z.updated_at <= ?"; filterValues.push(filters.updatedBefore); }
+        if (filters.tags && filters.tags.length > 0) {
+          const placeholders = filters.tags.map(() => "?").join(", ");
+          whereClause += ` AND z.id IN (SELECT note_id FROM zettel_note_tags WHERE tag_id IN (SELECT id FROM zettel_tags WHERE name IN (${placeholders})))`;
+          filterValues.push(...filters.tags);
+        }
+      }
+
       const rows = this.db.prepare(`
         SELECT
           z.id, z.title, z.content, z.summary, z.type, z.status, z.folder, z.reviewed,
@@ -412,10 +444,10 @@ export class NoteRepository {
           rank
         FROM zettel_notes z
         JOIN zettel_fts ON z.id = zettel_fts.id
-        WHERE zettel_fts MATCH ?
+        ${whereClause}
         ORDER BY rank
         LIMIT ?
-      `).all(query, limit) as any[];
+      `).all(...filterValues, limit) as any[];
 
       ftsResults = rows.map(row => {
         const tags = this.getTags(row.id);
@@ -471,18 +503,34 @@ export class NoteRepository {
   /**
    * 降级搜索（当 FTS 不可用时使用 LIKE 查询）
    */
-  private fallbackSearch(query: string, limit: number = DEFAULT_PAGE_LIMIT): SearchResult[] {
+  private fallbackSearch(query: string, limit: number = DEFAULT_PAGE_LIMIT, filters?: QueryNotesParams): SearchResult[] {
     const searchPattern = `%${query}%`;
+    let whereClause = "WHERE (z.title LIKE ? OR z.content LIKE ?)";
+    const filterValues: any[] = [searchPattern, searchPattern];
+    if (filters) {
+      if (filters.folder) { whereClause += " AND z.folder = ?"; filterValues.push(filters.folder); }
+      if (filters.minConfidence !== undefined) { whereClause += " AND z.confidence >= ?"; filterValues.push(filters.minConfidence); }
+      if (filters.maxConfidence !== undefined) { whereClause += " AND z.confidence <= ?"; filterValues.push(filters.maxConfidence); }
+      if (filters.createdAfter) { whereClause += " AND z.created_at >= ?"; filterValues.push(filters.createdAfter); }
+      if (filters.createdBefore) { whereClause += " AND z.created_at <= ?"; filterValues.push(filters.createdBefore); }
+      if (filters.updatedAfter) { whereClause += " AND z.updated_at >= ?"; filterValues.push(filters.updatedAfter); }
+      if (filters.updatedBefore) { whereClause += " AND z.updated_at <= ?"; filterValues.push(filters.updatedBefore); }
+      if (filters.tags && filters.tags.length > 0) {
+        const placeholders = filters.tags.map(() => "?").join(", ");
+        whereClause += ` AND z.id IN (SELECT note_id FROM zettel_note_tags WHERE tag_id IN (SELECT id FROM zettel_tags WHERE name IN (${placeholders})))`;
+        filterValues.push(...filters.tags);
+      }
+    }
     const rows = this.db.prepare(`
       SELECT
         z.id, z.title, z.content, z.summary, z.type, z.status, z.folder, z.reviewed,
         z.confidence, z.source, z.session_key as "sessionKey", z.file_path as "filePath",
         z.created_at as "createdAt", z.updated_at as "updatedAt"
       FROM zettel_notes z
-      WHERE z.title LIKE ? OR z.content LIKE ?
+      ${whereClause}
       ORDER BY z.updated_at DESC
       LIMIT ?
-    `).all(searchPattern, searchPattern, limit) as any[];
+    `).all(...filterValues, limit) as any[];
     
     return rows.map(row => {
       const tags = this.getTags(row.id);

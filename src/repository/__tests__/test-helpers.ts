@@ -43,7 +43,7 @@ export function createTestNoteData(overrides: Partial<{
     title: overrides.title ?? "测试笔记标题",
     content: overrides.content ?? "这是测试笔记的内容，包含足够的文字来通过原子化检查。",
     type: overrides.type ?? "atomic",
-    folder: overrides.folder ?? "inbox",
+    folder: overrides.folder,
     confidence: overrides.confidence ?? 0.8,
     source: overrides.source ?? "manual",
     tags: overrides.tags ?? [],

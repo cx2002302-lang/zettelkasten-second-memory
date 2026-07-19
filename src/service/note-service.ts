@@ -17,6 +17,7 @@ import type {
   ZettelNote,
   CreateNoteParams,
   UpdateNoteParams,
+  QueryNotesParams,
   NoteStatus,
   NoteFolder,
   SourceType,
@@ -24,6 +25,9 @@ import type {
 } from "../core/types.js";
 import { generateZettelId, toISOString } from "../core/utils.js";
 import { DEFAULT_NOTE_FOLDER, DEFAULT_CONFIDENCE, DEFAULT_CONFIDENCE_THRESHOLD, MIN_CONFIDENCE_THRESHOLD, DEFAULT_PAGE_LIMIT, DEFAULT_PAGE_SIZE } from "../core/constants.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("NoteService");
 
 export interface CreateNoteOptions {
   /** 置信度评分 0-1，影响存储位置 */
@@ -90,10 +94,10 @@ export class NoteService {
       throw new Error("Confidence must be between 0 and 1");
     }
 
-    // 1. 确定目标文件夹（置信度路由）
-    const folder = this.routeByConfidence(confidence);
+    // 1. 确定目标文件夹（置信度路由，除非用户显式指定了 folder）
+    const folder = params.folder ?? this.routeByConfidence(confidence);
 
-    // 2. 构建参数（覆盖 folder, confidence, source）
+    // 2. 构建参数（覆盖 confidence, source）
     const createParams: CreateNoteParams = {
       ...params,
       folder,
@@ -125,8 +129,7 @@ export class NoteService {
         const note = await this.createNote(params, { confidence, source });
         notes.push(note);
       } catch (error) {
-        // TODO: replace with structured logger
-        // console.error(`Failed to create note "${params.title}":`, error);
+        logger.error("Failed to create note", { title: params.title, error });
         // 继续处理其他笔记
       }
     }
@@ -210,8 +213,8 @@ export class NoteService {
     return await this.updateNote(id, { folder: "zettels", preserveUpdatedAt: true });
   }
 
-  async searchNotes(query: string, limit: number = DEFAULT_PAGE_LIMIT, options?: { includeArchived?: boolean }): Promise<SearchResult[]> {
-    const results = await this.noteRepo.search(query, limit);
+  async searchNotes(query: string, limit: number = DEFAULT_PAGE_LIMIT, options?: { includeArchived?: boolean; filters?: Partial<QueryNotesParams> }): Promise<SearchResult[]> {
+    const results = await this.noteRepo.search(query, limit, options?.filters);
     if (!options?.includeArchived) {
       return results.filter(r => r.note.folder !== 'archive');
     }
@@ -367,8 +370,7 @@ export class NoteService {
       
       // 如果没找到，可以尝试按标题查找（简化：跳过）
       if (!targetNote) {
-        // TODO: replace with structured logger
-        // console.warn(`Target note "${target}" not found, skipping link creation`);
+        logger.warn("Target note not found, skipping link creation", { target });
         continue;
       }
       

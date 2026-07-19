@@ -8,7 +8,7 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-beta.8.1-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.0-beta.8-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24/2026.6.x-green.svg)](https://github.com/openclaw)
 [![Hermes](https://img.shields.io/badge/Hermes%20Agent-v0.17.0-blueviolet.svg)](https://github.com/nousresearch/hermes-agent)
 [![MCP Server](https://img.shields.io/badge/MCP-34%20Tools-orange.svg)](src/mcp/server.ts)
@@ -21,13 +21,13 @@
 
 | 组件 | 版本 | 状态 |
 |------|------|------|
-| 插件 | `v1.0.0-beta.8.1` | 活跃开发中 |
-| Skill | `v1.0.0-beta.3` | 活跃开发中 |
+| 插件 | `v1.0.0-beta.8` | 活跃开发中 |
+| Skill | `v1.0.0-beta.8` | 活跃开发中 |
 | OpenClaw | `2026.4.24/2026.6.x` | 开发测试通过；兼容 >= 2026.4.23 |
 | Hermes Agent | `v0.17.0` | 实验性支持，通过 MCP HTTP bridge |
 | Node.js | `>= 22.14.0` | 必需（`node:sqlite`） |
 
-**最新发布**: [v1.0.0-beta.8.1](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.8.1) — OpenClaw 2026.6.x 与 Hermes MCP bridge 兼容性适配
+**最新发布**: [v1.0.0-beta.8](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.8) — OpenClaw 2026.6.x 与 Hermes MCP bridge 兼容性适配
 
 ---
 

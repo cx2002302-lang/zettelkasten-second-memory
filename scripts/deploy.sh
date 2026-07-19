@@ -55,7 +55,13 @@ log_ok "Source copied"
 
 # 3. 安装依赖
 log_info "[2/5] Installing dependencies..."
-PLUGIN_VERSION="1.0.0-beta.7"
+# 版本号以仓库根目录 package.json 为唯一权威来源，禁止在此硬编码
+PLUGIN_VERSION="$(node -p "require(process.argv[1]).version" "$PROJECT_DIR/package.json" 2>/dev/null)"
+if [ -z "$PLUGIN_VERSION" ]; then
+    log_error "Failed to read version from $PROJECT_DIR/package.json"
+    exit 1
+fi
+log_info "Plugin version (from package.json): $PLUGIN_VERSION"
 if [ ! -f "$PLUGIN_DIR/package.json" ]; then
     cat > "$PLUGIN_DIR/package.json" << EOF
 {

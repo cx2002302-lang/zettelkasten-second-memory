@@ -2,7 +2,7 @@ import { Type } from "@sinclair/typebox";
 import { jsonResult, readStringParam, readNumberParam } from "openclaw/plugin-sdk/core";
 import { existsSync, mkdirSync } from "node:fs";
 
-import type { ZettelNote } from "../../core/types.js";
+import type { ZettelNote, NoteFolder, NoteStatus, QueryNotesParams } from "../../core/types.js";
 import { NoteService } from "../../service/note-service.js";
 import { LinkService } from "../../service/link-service.js";
 import { CEQRCEngine } from "../../service/ceqrc-engine.js";
@@ -40,6 +40,12 @@ const ZkCreateNoteSchema = Type.Object(
     source: optionalStringEnum(["manual", "distilled", "ceqrc"] as const, {
       description: "Source type of the note",
     }),
+    folder: optionalStringEnum(["inbox", "references", "zettels", "archive"] as const, {
+      description: "Override confidence-based folder routing",
+    }),
+    status: optionalStringEnum(["FLEETING", "LITERATURE", "PERMANENT"] as const, {
+      description: "Lifecycle status of the note",
+    }),
   },
   { additionalProperties: false },
 );
@@ -51,6 +57,34 @@ const ZkSearchNotesSchema = Type.Object(
       description: "Maximum number of results (default 20)",
       minimum: 1,
       maximum: 100,
+    })),
+    tags: Type.Optional(Type.Array(Type.String(), {
+      description: "Filter by tags (AND intersection)",
+    })),
+    folder: optionalStringEnum(["inbox", "references", "zettels", "archive"] as const, {
+      description: "Filter by folder",
+    }),
+    minConfidence: Type.Optional(Type.Number({
+      description: "Minimum confidence score 0-1",
+      minimum: 0,
+      maximum: 1,
+    })),
+    maxConfidence: Type.Optional(Type.Number({
+      description: "Maximum confidence score 0-1",
+      minimum: 0,
+      maximum: 1,
+    })),
+    createdAfter: Type.Optional(Type.String({
+      description: "Filter by created_at >= (ISO 8601 date string)",
+    })),
+    createdBefore: Type.Optional(Type.String({
+      description: "Filter by created_at <= (ISO 8601 date string)",
+    })),
+    updatedAfter: Type.Optional(Type.String({
+      description: "Filter by updated_at >= (ISO 8601 date string)",
+    })),
+    updatedBefore: Type.Optional(Type.String({
+      description: "Filter by updated_at <= (ISO 8601 date string)",
     })),
   },
   { additionalProperties: false },
@@ -91,6 +125,12 @@ const ZkUpdateNoteSchema = Type.Object(
     tags: Type.Optional(Type.Array(Type.String(), {
       description: "Replacement tag list",
     })),
+    folder: optionalStringEnum(["inbox", "references", "zettels", "archive"] as const, {
+      description: "Move note to a different folder",
+    }),
+    status: optionalStringEnum(["FLEETING", "LITERATURE", "PERMANENT"] as const, {
+      description: "Update lifecycle status",
+    }),
   },
   { additionalProperties: false },
 );
@@ -207,15 +247,22 @@ export function createZkCreateNoteTool(noteService: NoteService, notesDir: strin
       const tags = Array.isArray(rawParams.tags) ? (rawParams.tags as string[]).filter((t) => typeof t === "string") : undefined;
       const confidence = readNumberParam(rawParams, "confidence");
       const source = readStringParam(rawParams, "source") as "manual" | "distilled" | "ceqrc" | undefined;
+      const folder = readStringParam(rawParams, "folder") as NoteFolder | undefined;
+      const status = readStringParam(rawParams, "status") as NoteStatus | undefined;
 
       if (!existsSync(notesDir)) {
         mkdirSync(notesDir, { recursive: true });
       }
 
       const note = await noteService.createNote(
-        { title, content, tags },
+        { title, content, tags, folder, status },
         { confidence: confidence ?? undefined, source: source ?? "manual" },
       );
+
+      const hasHotTag = note.tags.includes("svm:hot");
+      if (hasHotTag) {
+        return jsonResult({ ...note, hot: true });
+      }
 
       return jsonResult(note);
     },
@@ -232,8 +279,28 @@ export function createZkSearchNotesTool(noteService: NoteService) {
     execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
       const query = readStringParam(rawParams, "query", { required: true });
       const limit = readNumberParam(rawParams, "limit", { integer: true }) ?? 20;
+      const tags = Array.isArray(rawParams.tags) ? (rawParams.tags as string[]).filter((t) => typeof t === "string") : undefined;
+      const folder = readStringParam(rawParams, "folder");
+      const minConfidence = readNumberParam(rawParams, "minConfidence");
+      const maxConfidence = readNumberParam(rawParams, "maxConfidence");
+      const createdAfter = readStringParam(rawParams, "createdAfter");
+      const createdBefore = readStringParam(rawParams, "createdBefore");
+      const updatedAfter = readStringParam(rawParams, "updatedAfter");
+      const updatedBefore = readStringParam(rawParams, "updatedBefore");
 
-      const results = await noteService.searchNotes(query, limit);
+      const filters: Partial<QueryNotesParams> = {};
+      if (tags !== undefined) filters.tags = tags;
+      if (folder !== undefined) filters.folder = folder as QueryNotesParams["folder"];
+      if (minConfidence !== undefined) filters.minConfidence = minConfidence;
+      if (maxConfidence !== undefined) filters.maxConfidence = maxConfidence;
+      if (createdAfter !== undefined) filters.createdAfter = createdAfter;
+      if (createdBefore !== undefined) filters.createdBefore = createdBefore;
+      if (updatedAfter !== undefined) filters.updatedAfter = updatedAfter;
+      if (updatedBefore !== undefined) filters.updatedBefore = updatedBefore;
+
+      const results = await noteService.searchNotes(query, limit, {
+        filters: Object.keys(filters).length > 0 ? filters : undefined,
+      });
       return jsonResult(results);
     },
   };
@@ -313,7 +380,7 @@ export function createZkUpdateNoteTool(noteService: NoteService) {
     name: "zk_update_note",
     label: "ZK Update Note",
     description:
-      "Update an existing Zettelkasten note's title, content, confidence, or tags. Only provided fields are changed.",
+      "Update an existing Zettelkasten note's title, content, confidence, tags, folder, or status. Only provided fields are changed.",
     parameters: ZkUpdateNoteSchema,
     execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
       const id = readStringParam(rawParams, "id", { required: true });
@@ -321,22 +388,27 @@ export function createZkUpdateNoteTool(noteService: NoteService) {
       const content = readStringParam(rawParams, "content");
       const confidence = readNumberParam(rawParams, "confidence");
       const tags = Array.isArray(rawParams.tags) ? (rawParams.tags as string[]).filter((t) => typeof t === "string") : undefined;
+      const folder = readStringParam(rawParams, "folder") as NoteFolder | undefined;
+      const status = readStringParam(rawParams, "status") as NoteStatus | undefined;
 
-      const updateParams: {
-        title?: string;
-        content?: string;
-        confidence?: number;
-        tags?: string[];
-      } = {};
+      const updateParams: Record<string, unknown> = {};
       if (title !== undefined) updateParams.title = title;
       if (content !== undefined) updateParams.content = content;
       if (confidence !== undefined) updateParams.confidence = confidence;
       if (tags !== undefined) updateParams.tags = tags;
+      if (folder !== undefined) updateParams.folder = folder;
+      if (status !== undefined) updateParams.status = status;
 
       const updated = await noteService.updateNote(id, updateParams);
       if (!updated) {
         return jsonResult({ error: `Note "${id}" not found` });
       }
+
+      const hasHotTag = updated.tags.includes("svm:hot");
+      if (hasHotTag) {
+        return jsonResult({ ...updated, hot: true });
+      }
+
       return jsonResult(updated);
     },
   };

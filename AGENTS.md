@@ -2,9 +2,9 @@
 
 ## 系统版本信息（每次思考必须考虑）
 
-- **OpenClaw 版本**: 2026.4.24 / 2026.6.x（兼容 >= 2026.4.23）
-- **Zettelkasten 插件版本**: v1.0.0-beta.8
-- **Skill 版本**: v1.0.0-beta.8
+- **OpenClaw 版本**: 2026.4.24 / 2026.7.1（兼容 >= 2026.4.23）
+- **Zettelkasten 插件版本**: v1.0.0-beta.10
+- **Skill 版本**: v1.0.0-beta.10
 - **Hermes Agent**: v0.17.0+（实验性支持）
 - **Node 要求**: >= 22.14.0（`node:sqlite` 需要 Node 22+）
 

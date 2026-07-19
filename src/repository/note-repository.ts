@@ -16,7 +16,10 @@ import {
   checkAtomicity,
 } from "../core/utils.js";
 import { DEFAULT_NOTE_TYPE, DEFAULT_NOTE_STATUS, DEFAULT_NOTE_FOLDER, DEFAULT_CONFIDENCE, DEFAULT_TRUNCATE_LENGTH, DEFAULT_PAGE_LIMIT, FTS_SNIPPET_LENGTH } from "../core/constants.js";
+import { createLogger } from "../core/logger.js";
 import type { TemplateManager } from "../storage/template-manager.js";
+
+const logger = createLogger("NoteRepository");
 
 export class NoteRepository {
   constructor(
@@ -50,8 +53,7 @@ export class NoteRepository {
     // 检查原子化原则
     const atomicityCheck = checkAtomicity(params.content);
     if (!atomicityCheck.isAtomic) {
-      // TODO: replace with structured logger
-      // console.warn("Atomicity check failed:", atomicityCheck.issues);
+      logger.warn("Atomicity check failed", { issues: atomicityCheck.issues });
       // 这里可以抛出错误或仅记录警告，根据配置决定
     }
     

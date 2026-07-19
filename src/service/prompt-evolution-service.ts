@@ -18,6 +18,9 @@ import type {
   CreateEvolutionSuggestionParams,
   PromptEvolutionSuggestion,
 } from "../core/types-phase5.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("PromptEvolutionService");
 
 export class PromptEvolutionService {
   private promptRepo: PromptVersionRepository;
@@ -242,8 +245,7 @@ export class PromptEvolutionService {
    */
   applyEvolutionSuggestion(suggestionId: string): PromptVersion | null {
     // 这里简化处理，实际应该从存储中获取建议并应用
-    // TODO: replace with structured logger
-    // console.log(`[PromptEvolution] Applying suggestion ${suggestionId}`);
+    logger.info("Applying suggestion", { suggestionId });
     return null;
   }
 

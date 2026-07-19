@@ -26,6 +26,9 @@ import { DEFAULT_CONFIDENCE_THRESHOLD, MIN_CONFIDENCE_THRESHOLD, DEFAULT_SIMILAR
 import { DedupeService } from "./dedupe-service.js";
 import { NoteService } from "./note-service.js";
 import { LinkService } from "./link-service.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("DistillerService");
 
 /** 默认配置 */
 const DEFAULT_CONFIG: DistillerServiceConfig = {
@@ -312,8 +315,7 @@ export class DistillerService {
     // 质量校验
     const validation = this.validateSummary(summary);
     if (!validation.valid) {
-      // TODO: replace with structured logger
-      // console.warn(`[Distiller] Skipping low-quality summary: ${validation.reason}`);
+      logger.warn("Skipping low-quality summary", { reason: validation.reason });
       return null;
     }
 
@@ -344,8 +346,7 @@ export class DistillerService {
 
       return note;
     } catch (error) {
-      // TODO: replace with structured logger
-      // console.error("Failed to create note from summary:", error);
+      logger.error("Failed to create note from summary", { error });
       return null;
     }
   }
@@ -464,8 +465,7 @@ export class DistillerService {
             callback(job);
           }
         } catch (error) {
-          // TODO: replace with structured logger
-          // console.error("Night distillation failed:", error);
+          logger.error("Night distillation failed", { error });
         }
       }
     }, interval);

@@ -266,7 +266,7 @@ ID: 20260511123456
 
 ### b2s — B站视频转文字
 ```
-python3 /home/myxia/musiconline/scripts/b2s_skill/core/b2s.py "<B站URL或BV号>"
+python3 "$HOME/musiconline/scripts/b2s_skill/core/b2s.py" "<B站URL或BV号>"
 ```
 用户发 B 站链接/BV 号时自动调用，获取 transcript。
 

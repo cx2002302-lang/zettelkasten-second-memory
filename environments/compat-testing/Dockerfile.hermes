@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1
+#
+# Hermes Agent 兼容测试镜像
+#
+# 在上游官方镜像之上叠加测试环境元数据，通过 build arg 固定版本：
+#   docker build -f Dockerfile.hermes \
+#     --build-arg HERMES_VERSION=0.17.0 .
+#
+# 版本来源（.env 可覆盖 prod 版本）：
+#   latest   → nousresearch/hermes-agent:latest    （滚动）
+#   0.17.0   → 本地固定 tag（make pin-hermes-prod） （生产镜像 v0.17.0）
+
+ARG HERMES_VERSION=latest
+FROM nousresearch/hermes-agent:${HERMES_VERSION}
+
+LABEL com.zettelkasten.compat-testing="true" \
+      org.opencontainers.image.title="hermes-compat-testing" \
+      org.opencontainers.image.description="Hermes Agent image for Zettelkasten compatibility testing"
+
+ENV TZ=Asia/Shanghai
+
+EXPOSE 8642 9119
+
+# hermes 默认命令是交互式 TUI，无 TTY 会立即退出。
+# 测试环境保持容器存活，通过 docker exec 探测版本 / 执行 MCP 测试。
+CMD ["sleep", "infinity"]

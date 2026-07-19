@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import type { LinkType, QueryNotesParams } from "../../core/types.js";
-import { ensureZettelkastenSchema, getDatabaseStats } from "../../storage/db-schema.js";
+import { ensureZettelkastenSchema, getDatabaseStats, getSchemaVersion } from "../../storage/db-schema.js";
 import type { ZettelkastenPluginConfig } from "../config.js";
 import type { ZettelkastenServices } from "../lifecycle.js";
 
@@ -48,8 +48,10 @@ export function registerCLICommands(
           const requiredTables = [
             "zettel_meta", "zettel_notes", "zettel_tags",
             "zettel_note_tags", "zettel_links",
+            "zettel_note_stats", "zettel_archive_log",
             "zettel_reviews", "zettel_feedback", "zettel_prompt_versions",
             "zettel_sample_curations", "zettel_system_tunings", "zettel_feedback_stats", "zettel_export_batches",
+            "zettel_serendipity", "zettel_moc_suggestions", "zettel_audit_reports",
           ];
           const missing: string[] = [];
           for (const table of requiredTables) {
@@ -64,6 +66,8 @@ export function registerCLICommands(
           } else {
             api.logger.info(`[zettelkasten] All ${requiredTables.length} tables verified`);
           }
+
+          api.logger.info(`[zettelkasten] Schema version: ${getSchemaVersion(db) ?? "unknown"}`);
 
           api.logger.info(`[zettelkasten] Database: ${config.databasePath}`);
           api.logger.info(`[zettelkasten] Notes dir: ${config.notesDir}`);

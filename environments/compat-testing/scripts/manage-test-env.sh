@@ -14,10 +14,13 @@
 set -e
 
 TEST_CONTAINERS=(
+  "openclaw-prod-mirror"
+  "openclaw-latest"
+  "hermes-prod-mirror"
+  "hermes-latest"
+  # 脚本时代遗留名称（可能仍存在）
   "openclaw-2026-4-23"
   "openclaw-2026-4-24"
-  "openclaw-latest"
-  "hermes-latest"
 )
 
 COMPOSE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -58,7 +61,7 @@ show_status() {
 
   echo ""
   echo "==> 相关数据卷"
-  docker volume ls --format '{{.Name}}' | grep -E 'compat-testing_oc-(2026-4-23|2026-4-24|latest)-data|hermes-latest-data' || true
+  docker volume ls --format '{{.Name}}' | grep -E 'compat-testing_(oc|hermes)|hermes-latest-data|hermes-prod-mirror-data' || true
 }
 
 stop_containers() {
@@ -114,7 +117,7 @@ stop_containers() {
   if [ "$remove_volumes" = true ]; then
     echo ""
     echo "==> 删除数据卷..."
-    for vol in compat-testing_oc-2026-4-23-data compat-testing_oc-2026-4-24-data compat-testing_oc-latest-data hermes-latest-data; do
+    for vol in compat-testing_oc-2026-4-23-data compat-testing_oc-2026-4-24-data compat-testing_oc-latest-data compat-testing_hermes-prod-mirror-data compat-testing_hermes-latest-data hermes-latest-data; do
       docker volume rm "$vol" >/dev/null 2>&1 || true
     done
   fi

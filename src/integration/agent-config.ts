@@ -32,7 +32,7 @@ export type MCPToolName =
   | "zk_create_note"
   | "zk_update_note"
   | "zk_create_link"
-  | "zk_run_ceqrc_workflow"
+  | "zk_run_ceqrc"
   | "zk_distill_memory"
   | "zk_review_note";
 
@@ -95,7 +95,7 @@ export const KNOWLEDGE_BRAIN_TOOLS: MCPToolName[] = [
   "zk_create_note",
   "zk_update_note",
   "zk_create_link",
-  "zk_run_ceqrc_workflow",
+  "zk_run_ceqrc",
   "zk_distill_memory",
   "zk_review_note",
 ];

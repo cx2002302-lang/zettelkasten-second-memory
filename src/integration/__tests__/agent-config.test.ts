@@ -305,7 +305,7 @@ describe("AgentConfigManager", () => {
       expect(KNOWLEDGE_BRAIN_TOOLS).toContain("zk_create_note");
       expect(KNOWLEDGE_BRAIN_TOOLS).toContain("zk_update_note");
       expect(KNOWLEDGE_BRAIN_TOOLS).toContain("zk_create_link");
-      expect(KNOWLEDGE_BRAIN_TOOLS).toContain("zk_run_ceqrc_workflow");
+      expect(KNOWLEDGE_BRAIN_TOOLS).toContain("zk_run_ceqrc");
       expect(KNOWLEDGE_BRAIN_TOOLS).toContain("zk_distill_memory");
       expect(KNOWLEDGE_BRAIN_TOOLS).toContain("zk_review_note");
     });

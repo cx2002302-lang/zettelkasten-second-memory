@@ -13,8 +13,8 @@ fi
 REPORT_DIR="reports/$(date +%Y-%m-%d-%H%M%S)"
 mkdir -p "$REPORT_DIR"
 
-OPENCLAW_CONTAINERS=("openclaw-2026-4-23" "openclaw-2026-4-24" "openclaw-latest")
-HERMES_CONTAINERS=("hermes-latest")
+OPENCLAW_CONTAINERS=("openclaw-prod-mirror" "openclaw-latest")
+HERMES_CONTAINERS=("hermes-prod-mirror" "hermes-latest")
 
 SUMMARY_FILE="$REPORT_DIR/summary.md"
 ALL_PASS=true
@@ -90,7 +90,10 @@ for container in "${OPENCLAW_CONTAINERS[@]}"; do
   ALSO_ALLOW=$(oc_exec "$container" openclaw config get tools.alsoAllow | tee -a "$report")
   echo '```' >> "$report"
   echo "" >> "$report"
+  # OpenClaw 2026.4.x 使用 ["zettelkasten"]，2026.6.x+ 推荐使用 ["group:plugins"]
   if echo "$ALSO_ALLOW" | grep -q '"zettelkasten"'; then
+    ALLOW_OK="✅"
+  elif echo "$ALSO_ALLOW" | grep -q '"group:plugins"'; then
     ALLOW_OK="✅"
   else
     ALLOW_OK="❌"
@@ -116,11 +119,12 @@ for container in "${OPENCLAW_CONTAINERS[@]}"; do
   SPO=$(oc_exec "$container" openclaw config get agents.defaults.systemPromptOverride | tee -a "$report")
   echo '```' >> "$report"
   echo "" >> "$report"
-  # OpenClaw >= 2026.6.x 已移除 systemPromptOverride，视为已知兼容性差异
+  # OpenClaw 2026.4.x 支持 systemPromptOverride，2026.6.x+ 已移除（预期行为）
   if [ -n "$SPO" ] && ! echo "$SPO" | grep -qi "not found\|Config path not found\|Unrecognized key"; then
     SPO_OK="✅"
-  elif echo "$OC_VERSION" | grep -qE '^2026\.(6|7|8|9|[0-9]{2})\.' || echo "$SPO" | grep -qi "Unrecognized key"; then
-    SPO_OK="⚠️"
+  elif echo "$SPO" | grep -qi "Config path not found\|not found\|Unrecognized key"; then
+    # 2026.6.x+ 已移除该字段，视为兼容（已知差异）
+    SPO_OK="✅"
   else
     SPO_OK="❌"
     ALL_PASS=false

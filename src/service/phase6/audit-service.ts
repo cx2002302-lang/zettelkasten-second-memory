@@ -38,22 +38,6 @@ export class KnowledgeAuditService {
   constructor(db: DatabaseSync, config?: Partial<AuditServiceConfig>) {
     this.db = db;
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.ensureSchema();
-  }
-
-  /**
-   * 创建审计报告表（非耦合，独立 Schema）
-   */
-  private ensureSchema(): void {
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS zettel_audit_reports (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        report_json TEXT NOT NULL,
-        schedule TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      )
-    `);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_created ON zettel_audit_reports(created_at DESC)`);
   }
 
   /**

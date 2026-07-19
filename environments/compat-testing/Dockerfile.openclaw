@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+#
+# OpenClaw 兼容测试镜像
+#
+# 在上游官方镜像之上叠加测试环境元数据，通过 build arg 固定版本：
+#   docker build -f Dockerfile.openclaw \
+#     --build-arg OPENCLAW_VERSION=2026.4.24 .
+#
+# 版本来源（.env 可覆盖 prod 版本）：
+#   latest      → openclaw/openclaw:latest              （Docker Hub 滚动，提前暴露新兼容问题）
+#   2026.4.24   → ghcr.io/openclaw/openclaw:2026.4.24   （生产镜像）
+
+ARG OPENCLAW_VERSION=latest
+ARG OPENCLAW_REGISTRY=openclaw/openclaw
+FROM ${OPENCLAW_REGISTRY}:${OPENCLAW_VERSION}
+
+LABEL com.zettelkasten.compat-testing="true" \
+      org.opencontainers.image.title="openclaw-compat-testing" \
+      org.opencontainers.image.description="OpenClaw image for Zettelkasten compatibility testing"
+
+# 与宿主机报告时间对齐
+ENV TZ=Asia/Shanghai
+
+EXPOSE 18789 9090
+
+# 默认以 gateway 方式启动；docker-compose.yml 中按版本差异覆盖 command
+CMD ["node", "openclaw.mjs", "gateway", "--bind", "auto", "--allow-unconfigured"]

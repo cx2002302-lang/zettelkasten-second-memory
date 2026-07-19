@@ -208,6 +208,13 @@ if find "$RELEASE_DIR" -name '*.env' -not -path '*/.git/*' | grep -q .; then
     VIOLATIONS="${VIOLATIONS}\n- 发现 .env 文件"
 fi
 
+# 检查 /home/ 绝对路径泄漏（如 /home/username/...；__tests__ 中的占位测试路径除外）
+LEAKED_HOME_PATHS=$(grep -rIinE '/home/[A-Za-z0-9._-]+' "$RELEASE_DIR" --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=__tests__ || true)
+if [ -n "$LEAKED_HOME_PATHS" ]; then
+    echo "$LEAKED_HOME_PATHS"
+    VIOLATIONS="${VIOLATIONS}\n- 发现 /home/ 绝对路径泄漏（请改用相对路径或环境变量，如 \$HOME）"
+fi
+
 if [ -n "$VIOLATIONS" ]; then
     echo ""
     log_error "发布前检查失败，发现以下敏感信息/内部引用："

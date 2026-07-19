@@ -7,7 +7,7 @@ description: |
 
 # Zettelkasten Brain — 行为指令
 
-**版本**: 1.0.0-beta.3
+**版本**: 1.0.0-beta.8
 **生效时间**: 2026-06-28
 **进化阶段**: beta
 
@@ -273,7 +273,7 @@ ID: 20260511123456
 
 ### b2s — B站视频转文字
 ```
-python3 /home/myxia/musiconline/scripts/b2s_skill/core/b2s.py "<B站URL或BV号>"
+python3 "$HOME/musiconline/scripts/b2s_skill/core/b2s.py" "<B站URL或BV号>"
 ```
 用户发 B 站链接/BV 号时自动调用，获取 transcript。
 
@@ -293,5 +293,5 @@ svm sync auto                       # 与 ZK 双向同步
 
 ---
 
-*本提示词由 Zettelkasten Brain Skill v1.0.0-beta.3 生成*
+*本提示词由 Zettelkasten Brain Skill v1.0.0-beta.8 生成*
 *下次进化时间: 2026-07-05*

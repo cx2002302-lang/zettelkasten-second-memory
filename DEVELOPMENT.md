@@ -1,6 +1,6 @@
 # Zettelkasten 开发包
 
-**版本**: v1.0.0-beta.8.1  
+**版本**: v1.0.0-beta.8  
 **目标路径**: `~/.openclaw/project/zettelkasten`  
 **开发工具**: Kimi Code CLI + OpenClaw 2026.4.24 / 2026.6.x
 
@@ -35,7 +35,7 @@ zettelkasten/
 
 ```bash
 # 解压到 ~/.openclaw/project/
-tar -xzf zettelkasten-plugin-v1.0.0-beta.8.1.tar.gz
+tar -xzf zettelkasten-plugin-v1.0.0-beta.8.tar.gz
 mv zettelkasten-plugin ~/.openclaw/project/zettelkasten
 ```
 
@@ -215,4 +215,4 @@ chmod 644 ~/.openclaw/zettelkasten/zettelkasten.db
 ---
 
 **Git 仓库**: 本项目根目录  
-**当前版本**: v1.0.0-beta.8.1
+**当前版本**: v1.0.0-beta.8

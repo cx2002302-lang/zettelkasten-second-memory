@@ -12,7 +12,7 @@
  * 后台知识管理子脑（读写）：
  * 5. zk_create_note       - 创建笔记（含置信度路由）
  * 6. zk_update_note       - 更新笔记
- * 7. zk_run_ceqrc_workflow - CEQRC 工作流
+ * 7. zk_run_ceqrc         - CEQRC 工作流
  * 
  * 权限通过 OpenClaw Agent 配置控制。
  */
@@ -36,6 +36,9 @@ import type {
   LLMProvider,
 } from "../core/types.js";
 import { DEFAULT_PAGE_LIMIT, DEFAULT_PAGE_SIZE } from "../core/constants.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("ZettelkastenMCPServer");
 
 export interface ZettelkastenMCPConfig {
   /** 数据库文件路径 */
@@ -596,7 +599,7 @@ export class ZettelkastenMCPServer {
           handler: async (args: any) => await this.unarchiveNote(args.noteId),
         },
         {
-          name: "zk_run_ceqrc_workflow",
+          name: "zk_run_ceqrc",
           description: "运行 CEQRC 深度内化工作流",
           inputSchema: {
             type: "object",
@@ -623,17 +626,6 @@ export class ZettelkastenMCPServer {
             required: ["date"],
           },
           handler: async (args: any) => await this.distillMemoryLog(args.date),
-        },
-        {
-          name: "zk_get_inbox_queue",
-          description: "获取 Inbox 待审核队列",
-          inputSchema: {
-            type: "object",
-            properties: {
-              limit: { type: "number", description: "返回数量", default: DEFAULT_PAGE_SIZE },
-            },
-          },
-          handler: async (args: any) => await this.getInboxQueue(args.limit),
         },
         {
           name: "zk_review_note",
@@ -666,8 +658,7 @@ export class ZettelkastenMCPServer {
    * 启动 MCP 服务器（集成到 OpenClaw）
    */
   start(): void {
-    // TODO: replace with structured logger
-    // console.log("Zettelkasten MCP server started");
+    logger.info("Zettelkasten MCP server started");
     // TODO: 注册到 OpenClaw MCP 管理器
   }
 
@@ -675,7 +666,6 @@ export class ZettelkastenMCPServer {
    * 停止 MCP 服务器
    */
   stop(): void {
-    // TODO: replace with structured logger
-    // console.log("Zettelkasten MCP server stopped");
+    logger.info("Zettelkasten MCP server stopped");
   }
 }

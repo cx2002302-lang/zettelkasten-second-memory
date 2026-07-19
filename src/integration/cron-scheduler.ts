@@ -11,6 +11,9 @@
 
 import type { DistillerService } from "../service/distiller-service.js";
 import type { DistillJob } from "../core/types.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("CronScheduler");
 
 // ============================================================================
 // Cron 调度配置类型
@@ -166,16 +169,14 @@ export class ZettelkastenCronScheduler {
 
     this.logs.push(entry);
 
-    // 控制台输出
-    // TODO: replace with structured logger
-    // const prefix = `[Zettelkasten Cron] ${level.toUpperCase()}:`;
-    // if (level === "error") {
-    //   console.error(prefix, message, details || "");
-    // } else if (level === "warn") {
-    //   console.warn(prefix, message, details || "");
-    // } else {
-    //   console.log(prefix, message, details || "");
-    // }
+    // 控制台输出（结构化日志）
+    if (level === "error") {
+      logger.error(message, details);
+    } else if (level === "warn") {
+      logger.warn(message, details);
+    } else {
+      logger.info(message, details);
+    }
   }
 
   // ============================================================================

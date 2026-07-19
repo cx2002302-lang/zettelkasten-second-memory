@@ -8,7 +8,7 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-beta.8.1-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.0-beta.8-blue.svg)](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.4.24/2026.6.x-green.svg)](https://github.com/openclaw)
 [![Hermes](https://img.shields.io/badge/Hermes%20Agent-v0.17.0-blueviolet.svg)](https://github.com/nousresearch/hermes-agent)
 [![MCP Server](https://img.shields.io/badge/MCP-34%20Tools-orange.svg)](src/mcp/server.ts)
@@ -21,13 +21,13 @@
 
 | Component | Version | Status |
 |-----------|---------|--------|
-| Plugin | `v1.0.0-beta.8.1` | Active development |
-| Skill | `v1.0.0-beta.3` | Active development |
+| Plugin | `v1.0.0-beta.8` | Active development |
+| Skill | `v1.0.0-beta.8` | Active development |
 | OpenClaw | `2026.4.24/2026.6.x` | Developed & tested; compatible with >= 2026.4.23 |
 | Hermes Agent | `v0.17.0` | Experimental support via MCP HTTP bridge |
 | Node.js | `>= 22.14.0` | Required (for `node:sqlite`) |
 
-**Latest Release**: [v1.0.0-beta.8.1](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.8.1) — Compatibility adaptation for OpenClaw 2026.6.x and Hermes MCP bridge
+**Latest Release**: [v1.0.0-beta.8](https://github.com/cx2002302-lang/zettelkasten-second-memory/releases/tag/v1.0.0-beta.8) — Compatibility adaptation for OpenClaw 2026.6.x and Hermes MCP bridge
 
 ---
 

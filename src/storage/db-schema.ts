@@ -143,18 +143,20 @@ export function ensureZettelkastenSchema(
   }
   
   // 插入初始元数据
-  ensureMetaValue(db, "schema_version", "2.1.0");
   ensureMetaValue(db, "created_at", new Date().toISOString());
-  
+
   // Phase 3: Wave 1 - 知识发光度与归档支持
   ensurePhase3Wave1Schema(db);
-  
+
   // Wave 2: 归档历史记录
   ensureArchiveLogTable(db);
-  
+
   // Phase 5: 人机共生与反馈 - 创建审核和反馈相关表
   ensurePhase5Schema(db);
-  
+
+  // 版本化 Schema 迁移（含 Phase 6 表）：新库应用全部迁移并写入当前版本，旧库沿迁移链逐版本升级
+  applySchemaMigrations(db);
+
   return { ftsAvailable, ...(ftsError ? { ftsError } : {}) };
 }
 
@@ -456,18 +458,160 @@ function ensurePhase5Schema(db: DatabaseSync): void {
 }
 
 /**
+ * 当前 Schema 版本
+ * 新增 schema 变更时，在 SCHEMA_MIGRATIONS 追加迁移步骤并更新此版本号
+ */
+export const SCHEMA_VERSION = "2.1.0";
+
+export interface SchemaMigration {
+  /** 迁移前的版本 */
+  from: string;
+  /** 迁移后的版本 */
+  to: string;
+  /** 迁移说明 */
+  description: string;
+  /** 执行迁移（必须为幂等实现） */
+  migrate: (db: DatabaseSync) => void;
+}
+
+/**
+ * Schema 迁移注册表（按版本顺序排列）
+ * 迁移路径：2.0.0 → 2.1.0 → 未来版本
+ */
+const SCHEMA_MIGRATIONS: SchemaMigration[] = [
+  {
+    from: "2.0.0",
+    to: "2.1.0",
+    description: "Phase 6: 意外发现 / MOC 建议 / 知识审计报告表",
+    migrate: ensurePhase6Schema,
+  },
+];
+
+/**
+ * 按迁移注册表把数据库带到 SCHEMA_VERSION
+ * - 全新数据库（无版本记录）：依次应用全部迁移并写入当前版本
+ * - 已知旧版本：沿迁移链逐版本升级
+ * - 未知版本（无迁移路径）：幂等应用全部迁移并对齐到当前版本，
+ *   兼容版本信息缺失或损坏的旧库（所有迁移均为幂等实现）
+ */
+function applySchemaMigrations(db: DatabaseSync): void {
+  const current = getSchemaVersion(db);
+
+  if (current === SCHEMA_VERSION) {
+    return;
+  }
+
+  if (!current) {
+    for (const step of SCHEMA_MIGRATIONS) {
+      step.migrate(db);
+    }
+    setMetaValue(db, "schema_version", SCHEMA_VERSION);
+    return;
+  }
+
+  let version = current;
+  const visited = new Set<string>([version]);
+
+  while (version !== SCHEMA_VERSION) {
+    const step = SCHEMA_MIGRATIONS.find((m) => m.from === version);
+    if (!step) {
+      for (const m of SCHEMA_MIGRATIONS) {
+        m.migrate(db);
+      }
+      setMetaValue(db, "schema_version", SCHEMA_VERSION);
+      return;
+    }
+    step.migrate(db);
+    version = step.to;
+    setMetaValue(db, "schema_version", version);
+    if (visited.has(version)) {
+      throw new Error(`Schema migration cycle detected at version ${version}`);
+    }
+    visited.add(version);
+  }
+}
+
+/**
+ * Phase 6: 知识发现与审计 Schema
+ * - zettel_serendipity 意外发现记录（SerendipityService 使用）
+ * - zettel_moc_suggestions MOC 建议（MOCService 使用）
+ * - zettel_audit_reports 知识健康度审计报告（KnowledgeAuditService 使用）
+ */
+function ensurePhase6Schema(db: DatabaseSync): void {
+  // 意外发现记录表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS zettel_serendipity (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_note_id TEXT NOT NULL,
+      to_note_id TEXT NOT NULL,
+      score REAL NOT NULL,
+      reason TEXT,
+      common_neighbors TEXT,
+      path_length INTEGER,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected', 'ignored')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      resolved_at TEXT,
+      UNIQUE(from_note_id, to_note_id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_serendipity_score ON zettel_serendipity(score DESC);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_serendipity_status ON zettel_serendipity(status);`);
+
+  // MOC 建议表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS zettel_moc_suggestions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      suggested_content TEXT,
+      community_id INTEGER,
+      hub_note_id TEXT,
+      note_count INTEGER,
+      density REAL,
+      note_titles TEXT,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'created', 'rejected')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      resolved_at TEXT
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_moc_status ON zettel_moc_suggestions(status);`);
+
+  // 知识健康度审计报告表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS zettel_audit_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      report_json TEXT NOT NULL,
+      schedule TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_created ON zettel_audit_reports(created_at DESC);`);
+}
+
+/**
  * 确保元数据表中的值存在
  */
 function ensureMetaValue(db: DatabaseSync, key: string, value: string): void {
   const existing = db
     .prepare(`SELECT value FROM zettel_meta WHERE key = ?`)
     .get(key) as { value: string } | undefined;
-  
+
   if (!existing) {
     db
       .prepare(`INSERT INTO zettel_meta (key, value) VALUES (?, ?)`)
       .run(key, value);
   }
+}
+
+/**
+ * 写入（或更新）元数据表中的值
+ */
+function setMetaValue(db: DatabaseSync, key: string, value: string): void {
+  db
+    .prepare(
+      `INSERT INTO zettel_meta (key, value, updated_at) VALUES (?, ?, datetime('now'))
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+    )
+    .run(key, value);
 }
 
 /**
